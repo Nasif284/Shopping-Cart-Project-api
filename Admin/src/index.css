@@ -1,0 +1,8 @@
+@import "tailwindcss";
+.MuiBadge-badge{
+    background-color: #ff5252 !important;
+}
+body{font-family: "Montserrat", sans-serif !important; background-color: #f1f1f1;}
+.ReactCollapse--collapse {
+    transition: height 500ms;
+}

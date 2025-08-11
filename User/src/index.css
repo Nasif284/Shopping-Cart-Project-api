@@ -1,0 +1,186 @@
+@import "tailwindcss";
+@theme{
+  --color-primary: #ff5252;
+}
+body{
+    font-family: "Montserrat", sans-serif !important;
+    font-optical-sizing: auto;
+    background-color: #F5F0F0;
+    overflow-x: hidden;
+}
+button{
+  font-family: "Montserrat", sans-serif !important;
+}
+.container{
+  width: 90%;
+  margin: auto;
+}
+.link:hover{
+  color: #ff5252;
+}
+nav li .submenu{
+  visibility: hidden;
+}
+nav li:hover .submenu{
+  opacity: 1;
+  visibility:inherit ;
+}
+nav li .submenu li .submenu{
+  visibility: hidden;
+}
+nav li .submenu li:hover .submenu{
+  opacity: 1;
+  visibility: inherit;
+}
+.mySwiper{
+  overflow: inherit !important;
+}
+.swiper-button-prev, .swiper-button-next{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border-radius: 100%;
+  width: 45px;
+  height: 45px;
+  min-width: 45px;
+}
+.swiper-button-prev::after,
+.swiper-button-next::after{
+  color: black;
+  font-size: 22px !important;
+}
+.catSlider .swiper-button-prev,
+.catSlider .swiper-button-next{
+width: 30px;
+height: 30px;
+min-width: 30px;
+}
+.catSlider .swiper-button-prev::after,
+.catSlider .swiper-button-next::after {
+  font-size: 16px !important;
+}
+.catSlider .swiper-button-prev:hover:after,
+.catSlider .swiper-button-next:hover::after {
+  color: white;
+}
+.catSlider .swiper-button-prev:hover,
+.catSlider .swiper-button-next:hover{
+  background-color: #ff5252;
+}
+.catSlider .item:hover img{
+  transform: scale(1.1);
+}
+::-webkit-scrollbar{
+  width: 8px !important;
+  height: 8px !important;
+}
+::-webkit-scrollbar-thumb{
+  background-color: #ff5252;
+}
+::-webkit-scrollbar-track{
+  background-color: white;
+}
+.MuiTabs-indicator{
+  background-color: #ff5252 !important;  
+}
+.MuiTab-textColorPrimary.Mui-selected{
+  color: #ff5252 !important;
+
+}
+
+.css-vuhw6e-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root.Mui-checked{
+  color: #ff5252 !important;
+}
+.MuiTypography-root{
+  font-size: 12px !important;
+}
+.swiper-pagination-bullet-active{
+  background-color: #ff5252 !important;
+}
+.homeSlide2 .swiper-slide-active .info{
+  right: 0 !important;
+  opacity: 1 !important;
+}
+.MuiCheckbox-root{
+  padding:6px !important;
+}
+
+.sidebar .scroll {
+  max-height: 250px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+.ReactCollapse--collapse {
+  transition: height 500ms;
+}
+.range-slider{
+  height: 3px !important;
+}
+.range-slider .range-slider__thumb{
+  width: 14px !important;
+  height: 14px !important;
+}
+.range-slider__thumb,.range-slider__range{
+  background-color: #ff5252 !important;
+}
+.css-1bug3cd-MuiButtonBase-root-MuiPaginationItem-root.Mui-selected{
+  background-color: #ff5252 !important;
+}
+
+.zoomSlider .swiper-button-next{
+  right: inherit !important;
+  top: inherit !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  border-radius: 0px !important;
+}
+.zoomSlider .swiper-button-prev {
+  right: inherit !important;
+  top: 20px !important;
+  height: 30px !important;
+    width: 100% !important;
+      border-radius: 0px !important;
+     left: 0 !important;
+
+}
+.zoomSlider .swiper-button-prev::after,.zoomSlider .swiper-button-next::after{
+  transform: rotate(90deg);
+}
+.zoomSlider .swiper-wrapper{
+  padding-top: 30px;
+}
+.sizes button{
+  min-width: 40px !important;
+  border: 1px solid rgba(0,0,0,0.1);
+  color: black;
+}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{
+  appearance: none;
+}
+span.iiz__btn.iiz__hint{
+  display: none;
+}
+p{
+  font-size: 14px;
+  line-height: 25px;
+  margin-bottom: 10px;
+  margin-top: 10px;
+}
+h1,h2,h3,h4,h5{
+  font-weight: 600;
+}
+.cartPanel .MuiPaper-root {
+width: 400px;
+}
+
+.sizeMenu .MuiButtonBase-root{
+  font-size: 12px !important;
+}
+.css-1q72ply-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root.Mui-checked{
+color: #ff5252 !important;
+}
+.userTabs .active {
+  border-left: 4px solid #ff5252;
+}
