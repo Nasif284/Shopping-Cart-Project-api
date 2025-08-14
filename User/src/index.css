@@ -56,6 +56,10 @@ width: 30px;
 height: 30px;
 min-width: 30px;
 }
+.catPanel Button,
+nav Button {
+  text-transform: capitalize !important;
+}
 .catSlider .swiper-button-prev::after,
 .catSlider .swiper-button-next::after {
   font-size: 16px !important;
@@ -183,4 +187,7 @@ color: #ff5252 !important;
 }
 .userTabs .active {
   border-left: 4px solid #ff5252;
+}
+.MuiBadge-badge {
+  background-color: #ff5252 !important;
 }
