@@ -5,7 +5,14 @@ import sendEmailFunc from "../utils/sendEmail.js";
 import verifyMailTemplate from "../utils/verifyMailTemplete.js";
 import generateAccessToken from "../utils/generateAccessToken.js";
 import generateRefreshToken from "../utils/generateRefreshToken.js";
-
+import { v2 as cloudinary } from "cloudinary";
+import fs from "fs";
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_API_KEY,
+  api_secret: process.env.CLOUD_SECRETE_KEY,
+  secure: true,
+});
 export async function registerUser(req, res) {
   try {
     let user;
@@ -159,7 +166,7 @@ export const logoutController = async (req, res) => {
   try {
     const userId = req.userId;
     const cookieOption = {
-      httpOnly: true, 
+      httpOnly: true,
       secure: true,
       sameSite: "none",
     };
@@ -182,5 +189,65 @@ export const logoutController = async (req, res) => {
       error: true,
       success: false,
     });
+  }
+};
+
+var imageArr = [];
+export const userImageController = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const image = req.files;
+    const user = await userModel.findOne({ _id: userId })
+    
+    const imgUrl = user.image;
+      const urlArr = imgUrl.split("/");
+      const img = urlArr[urlArr.length - 1];
+
+      const imageName = img.split(".")[0];
+      if (imageName) {
+        const del = await cloudinary.uploader.destroy(imageName);
+        if (del) {
+          res.status(200).send(del);
+        }
+      }
+
+    for (let i = 0; i < image?.length; i++) {
+      const options = {
+        use_filename: true,
+        unique_filename: false,
+        overwrite: false,
+      };
+      const img = await cloudinary.uploader.upload(image[i].path, options, function (error, result) {
+        imageArr.push(result.secure_url);
+        fs.unlinkSync(`uploads/${image[i].filename}`);
+        console.log(image[i].filename);
+      });
+    }
+    user.image = imageArr[0];
+    await user.save() 
+    return res.status(200).json({
+      _id: userId,
+      image: imageArr[0],
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || error,
+      error: true,
+      success: false,
+    });
+  }
+};
+
+export const removeImgFromCloudinary = async (req, res) => {
+  const imgUrl = req.query.img;
+  const urlArr = imgUrl.split("/");
+  const image = urlArr[urlArr.length - 1];
+
+  const imageName = image.split(".")[0];
+  if (imageName) {
+    const del = await cloudinary.uploader.destroy(imageName);
+    if (del) {
+      res.status(200).send(del);
+    }
   }
 };
