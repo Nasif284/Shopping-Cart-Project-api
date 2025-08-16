@@ -52,13 +52,11 @@ const userSchema = new mongoose.Schema({
       ref: "orders",
     },
   ],
-  forgot_password_otp: {
+  otp: {
     type: String,
-    default: null,
   },
-  forgot_password_expiry: {
+  otp_expiry: {
     type: Date,
-    default: "",
   },
   role: {
     type: String,
