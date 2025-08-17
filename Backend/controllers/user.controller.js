@@ -78,7 +78,7 @@ export const verifyEmailController = async (req, res) => {
       });
     }
     const isCodeValid = user.otp == otp;
-    const isNotExpired = user.otp_expiry > Date.now();
+const isNotExpired = user.otp_expiry > new Date();
     if (isCodeValid && isNotExpired) {
       user.otp = null;
       user.verify_email = true;
@@ -91,7 +91,7 @@ export const verifyEmailController = async (req, res) => {
       });
     } else if (!isCodeValid) {
       res.status(400).json({ success: false, error: true, message: "Otp is invalid" });
-    } else {
+    } else if(!isNotExpired) {
       res.status(400).json({ success: false, error: true, message: "Otp expired" });
     }
   } catch (error) {
@@ -121,6 +121,13 @@ export const loginController = async (req, res) => {
         message: "You are blocked, contact admin",
       });
     }
+        if (user.verify_email == false) {
+          return res.status(400).json({
+            success: "false",
+            error: "true",
+            message: "Please verify your email",
+          });
+        }
 
     const checkPass = await bcrypt.compare(password, user.password);
     if (!checkPass) {
@@ -252,7 +259,7 @@ export const updateUserDetails = async (req, res) => {
     const userId = req.params.id;
     const { name, email, mobile, password } = req.body;
     const user = await userModel.findById(userId);
-    let otp, hashedPassword;
+    let newOtp="", hashedPassword="";
     if (!user) {
       return res.status(400).json({
         success: "false",
@@ -261,7 +268,7 @@ export const updateUserDetails = async (req, res) => {
       });
     }
     if (email !== user.email) {
-      otp = Math.floor(100000 + Math.random() * 900000).toString();
+      newOtp = Math.floor(100000 + Math.random() * 900000).toString();
     }
     if (password) {
       let salt = await bcrypt.genSalt(10);
@@ -276,10 +283,10 @@ export const updateUserDetails = async (req, res) => {
         name: name,
         email: email,
         mobile: mobile,
-        verify_email: email ? false : true,
+        verify_email: email !== user.email ? false : true,
         password: hashedPassword,
-        otp: otp !== "" ? otp : null,
-        otp_expiry: otp !== "" ? Date.now() + 60000 : "",
+        otp: newOtp !== "" ? newOtp : null,
+        otp_expiry: newOtp !== "" ? Date.now() + 60000 : "",
       },
       { new: true }
     );
