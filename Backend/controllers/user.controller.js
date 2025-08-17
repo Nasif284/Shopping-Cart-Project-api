@@ -7,6 +7,7 @@ import generateAccessToken from "../utils/generateAccessToken.js";
 import generateRefreshToken from "../utils/generateRefreshToken.js";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
+import { error } from "console";
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
   api_key: process.env.CLOUD_API_KEY,
@@ -34,7 +35,7 @@ export async function registerUser(req, res) {
     }
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    const otp = Math.floor(10000 + Math.random() * 900000).toString();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user = new userModel({
       email: email,
       password: hashedPassword,
@@ -197,19 +198,13 @@ export const userImageController = async (req, res) => {
   try {
     const userId = req.userId;
     const image = req.files;
-    const user = await userModel.findOne({ _id: userId })
-    
-    const imgUrl = user.image;
-      const urlArr = imgUrl.split("/");
-      const img = urlArr[urlArr.length - 1];
+    const user = await userModel.findOne({ _id: userId });
 
-      const imageName = img.split(".")[0];
-      if (imageName) {
-        const del = await cloudinary.uploader.destroy(imageName);
-        if (del) {
-          res.status(200).send(del);
-        }
-      }
+    const imgUrl = user.image;
+    const urlArr = imgUrl.split("/");
+    const img = urlArr[urlArr.length - 1];
+    const imageName = img.split(".")[0];
+    await cloudinary.uploader.destroy(imageName);
 
     for (let i = 0; i < image?.length; i++) {
       const options = {
@@ -224,7 +219,7 @@ export const userImageController = async (req, res) => {
       });
     }
     user.image = imageArr[0];
-    await user.save() 
+    await user.save();
     return res.status(200).json({
       _id: userId,
       image: imageArr[0],
@@ -249,5 +244,66 @@ export const removeImgFromCloudinary = async (req, res) => {
     if (del) {
       res.status(200).send(del);
     }
+  }
+};
+
+export const updateUserDetails = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { name, email, mobile, password } = req.body;
+    const user = await userModel.findById(userId);
+    let otp, hashedPassword;
+    if (!user) {
+      return res.status(400).json({
+        success: "false",
+        error: "true",
+        message: "user doesn't exist",
+      });
+    }
+    if (email !== user.email) {
+      otp = Math.floor(100000 + Math.random() * 900000).toString();
+    }
+    if (password) {
+      let salt = await bcrypt.genSalt(10);
+      hashedPassword = await bcrypt.hash(password, salt);
+    } else {
+      hashedPassword = user.password;
+    }
+
+    const updatedUser = await userModel.findByIdAndUpdate(
+      userId,
+      {
+        name: name,
+        email: email,
+        mobile: mobile,
+        verify_email: email ? false : true,
+        password: hashedPassword,
+        otp: otp !== "" ? otp : null,
+        otp_expiry: otp !== "" ? Date.now() + 60000 : "",
+      },
+      { new: true }
+    );
+
+    if (email !== user.email) {
+      await sendEmailFunc({
+        sendTo: email,
+        subject: "Verification mail from shopping cart app",
+        text: `Your OTP is ${otp}`,
+        html: verifyMailTemplate(name, otp),
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      error: false,
+      message: "user details updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: true,
+      message: error.message,
+      success: false,
+    });
   }
 };
