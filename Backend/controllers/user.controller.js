@@ -6,7 +6,7 @@ import verifyMailTemplate from "../utils/verifyMailTemplete.js";
 import generateAccessToken from "../utils/generateAccessToken.js";
 import generateRefreshToken from "../utils/generateRefreshToken.js";
 import { v2 as cloudinary } from "cloudinary";
-import fs, { access } from "fs";
+import fs  from "fs";
 
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
@@ -200,9 +200,10 @@ export const logoutController = async (req, res) => {
   }
 };
 
-var imageArr = [];
+
 export const userImageController = async (req, res) => {
   try {
+    let imageArr = [];
     const userId = req.userId;
     const image = req.files;
     const user = await userModel.findOne({ _id: userId });
@@ -219,18 +220,20 @@ export const userImageController = async (req, res) => {
         unique_filename: false,
         overwrite: false,
       };
-      const img = await cloudinary.uploader.upload(image[i].path, options, function (error, result) {
+      await cloudinary.uploader.upload(image[i].path, options, function (error, result) {
         imageArr.push(result.secure_url);
         fs.unlinkSync(`uploads/${image[i].filename}`);
         console.log(image[i].filename);
       });
     }
     user.image = imageArr[0];
+  
     await user.save();
     return res.status(200).json({
       _id: userId,
       image: imageArr[0],
     });
+   
   } catch (error) {
     return res.status(500).json({
       message: error.message || error,

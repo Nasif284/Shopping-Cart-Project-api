@@ -1,4 +1,3 @@
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -8,6 +7,7 @@ import morgan from "morgan";
 import helmet from "helmet";
 import connectDb from "./config/connectDb.js";
 import userRouter from "./routes/user.route.js";
+import categoryRouter from "./routes/category.route.js";
 
 const app = express();
 app.use(cors());
@@ -17,7 +17,8 @@ app.use(cookieParser());
 app.use(morgan("dev"));
 app.use(helmet({ crossOriginResourcePolicy: false }));
 
-app.use('/api/user',userRouter)
+app.use('/api/user', userRouter)
+app.use("/api/category", categoryRouter);
 
 const PORT =process.env.PORT
 app.get("/", (req, res) => {
