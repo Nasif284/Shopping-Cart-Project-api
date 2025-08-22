@@ -9,7 +9,7 @@ import {AddCategory, AddHomeSlides, AddProducts, AddSubCategory, AdminLogin, Cat
 export const ProductContext = createContext();
 
 function App() {
-  const [role, setRole] = useState("admin");
+  const [role, setRole] = useState("user");
   const [open, setOpen] = useState(false);
   const [showSidebar,setShowSidebar]=useState(true)
   const openToast = (status, msg) => {
@@ -24,7 +24,6 @@ function App() {
     setOpen,
     openToast,
   };
-
   return (
     <>
       {role === "user" ? (

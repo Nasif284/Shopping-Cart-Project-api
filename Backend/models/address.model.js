@@ -15,15 +15,13 @@ const addressSchema = new mongoose.Schema(
     },
     pin_code: {
       type: String,
-      default: "",
-    },
-    country: {
-      type: String,
-      default: "",
+      required: true,
+      match: /^[0-9]{5,6}$/,
     },
     mobile: {
-      type: Number,
-      default: null,
+      type: String, 
+      required: true,
+      match: /^[0-9]{10}$/, 
     },
     status: {
       type: Boolean,
@@ -31,7 +29,13 @@ const addressSchema = new mongoose.Schema(
     },
     userId: {
       type: mongoose.Schema.ObjectId,
+      ref: "users",
       default: "",
+    },
+    address_type: { type: String, enum: ["home", "work", "other"], default: "home" },
+    isDefault: {
+      type: Boolean,
+      default: false,
     },
   },
   {
@@ -39,5 +43,5 @@ const addressSchema = new mongoose.Schema(
   }
 );
 
-const addressModel = mongoose.model("address", addressSchema);
+const addressModel = mongoose.model("Address", addressSchema);
 export default addressModel;

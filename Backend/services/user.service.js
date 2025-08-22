@@ -7,6 +7,7 @@ import generateAccessToken from "../utils/generateAccessToken.js";
 import generateRefreshToken from "../utils/generateRefreshToken.js";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
+import { getSignedImageUrl } from "../utils/getImageFromCloudinary.js";
 
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
@@ -18,11 +19,7 @@ cloudinary.config({
 export const registerUserService = async ({ name, email, password }) => {
   let user = await userModel.findOne({ email: email });
   if (user) {
-    return res.json({
-      message: "User already exist in this email Id",
-      error: true,
-      success: false,
-    });
+    throw new Error("user already exist in this email address");
   }
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
@@ -49,18 +46,14 @@ export const registerUserService = async ({ name, email, password }) => {
 export const verifyEmailService = async ({ email, otp }) => {
   let user = await userModel.findOne({ email: email });
   if (!user) {
-    return res.status(400).json({
-      message: "User not found in this email",
-      error: true,
-      success: false,
-    });
+    throw new Error("User not found in this email");
   }
   const isCodeValid = user.otp == otp;
   const isNotExpired = user.otp_expiry > new Date();
   if (!isCodeValid) {
-    res.status(400).json({ success: false, error: true, message: "Otp is invalid" });
+    throw new Error("Invalid Otp");
   } else if (!isNotExpired) {
-    res.status(400).json({ success: false, error: true, message: "Otp expired" });
+    throw new Error("IOtp expired");
   }
   user.otp = null;
   user.verify_email = true;
@@ -72,34 +65,18 @@ export const verifyEmailService = async ({ email, otp }) => {
 export const userLoginService = async ({ email, password }) => {
   const user = await userModel.findOne({ email: email });
   if (!user) {
-    return res.status(400).json({
-      success: "false",
-      error: "true",
-      message: "Invalid email address",
-    });
+    throw new Error("invalid email address");
   }
   if (user.status == "Blocked") {
-    return res.status(400).json({
-      success: false,
-      error: true,
-      message: "You are blocked, contact admin",
-    });
+    throw new Error("You are blocked, contact admin");
   }
   if (!user.verify_email) {
-    return res.status(400).json({
-      success: false,
-      error: true,
-      message: "Please verify your email",
-    });
+    throw new Error("Please verify your email");
   }
 
   const checkPass = await bcrypt.compare(password, user.password);
   if (!checkPass) {
-    return res.status(400).json({
-      success: false,
-      error: true,
-      message: "Your Password is incorrect",
-    });
+    throw new Error("Your Password is incorrect");
   }
   const accessToken = await generateAccessToken(user._id);
   const refreshToken = await generateRefreshToken(user.id);
@@ -116,27 +93,43 @@ export const userLoginService = async ({ email, password }) => {
 export const userImageUploadService = async (userId, image) => {
   const user = await userModel.findOne({ _id: userId });
   const imgUrl = user.image;
-  const imageName = imgUrl.split("/").pop().split(".")[0];
-  let imageUrl = "";
-  await cloudinary.uploader.destroy(imageName);
+  if (imgUrl) {
+    const imageName = imgUrl.split("/").pop().split(".")[0];
+    await cloudinary.uploader.destroy(imageName, { type: "authenticated" });
+  }
 
   const options = {
+    folder: "users",
+    type: "authenticated",
     use_filename: true,
     unique_filename: false,
     overwrite: false,
   };
-  await cloudinary.uploader.upload(image.path, options, function (error, result) {
-    imageUrl = result.secure_url;
-    fs.unlinkSync(`uploads/${image.filename}`);
-    console.log(image.filename);
-  });
+  const result = await cloudinary.uploader.upload(image.path, options);
+  fs.unlinkSync(`uploads/${image.filename}`);
 
-  user.image = imageUrl;
+  user.image = result.public_id;
 
   await user.save();
   return { _id: userId, image: user.image };
 };
+export const getUserProfile = async (req, res) => {
+  try {
+    const user = await userModel.findById(req.userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
+    const imageUrl = user.image ? getSignedImageUrl(user.image) : null;
+
+    return res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      image: imageUrl,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
 export const removeImgFromCloudinaryService = async (imgUrl) => {
   const imageName = imgUrl.split("/").pop().split(".")[0];
 
@@ -144,16 +137,12 @@ export const removeImgFromCloudinaryService = async (imgUrl) => {
   return del;
 };
 
-export const updateUserDetailsService = async () => {
-  const user = await userModel.findById(userId, { name, email, mobile, password });
+export const updateUserDetailsService = async (userId, { name, email, mobile, password }) => {
+  const user = await userModel.findById(userId);
   let newOtp = "",
     hashedPassword = "";
   if (!user) {
-    return res.status(400).json({
-      success: false,
-      error: true,
-      message: "user doesn't exist",
-    });
+    throw new Error("user doesn't exist");
   }
   if (email !== user.email) {
     newOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -193,11 +182,7 @@ export const updateUserDetailsService = async () => {
 export const forgotPasswordServices = async (email) => {
   const user = await userModel.findOne({ email: email });
   if (!user) {
-    return res.status(400).json({
-      success: false,
-      error: true,
-      message: "user doesn't exist",
-    });
+    throw new Error("user doesn't exist");
   }
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expiry = Date.now() + 600000;
@@ -215,18 +200,10 @@ export const forgotPasswordServices = async (email) => {
 export const verifyForgotPasswordOtpService = async (email, otp) => {
   const user = await userModel.findOne({ email: email });
   if (otp !== user.otp) {
-    return res.status(400).json({
-      success: false,
-      error: true,
-      message: "incorrect OTP",
-    });
+    throw new Error("incorrect OTP");
   }
   if (user.otp_expiry < new Date()) {
-    res.status(400).json({
-      success: false,
-      error: true,
-      message: "Otp expired",
-    });
+    throw new Error("Otp expired");
   }
   user.otp = "";
   user.otp_expiry = "";
@@ -244,20 +221,11 @@ export const resetPasswordService = async (email, newPassword) => {
 export const refreshTokenService = async (token) => {
   const verifyToken = await jwt.verify(token, process.env.JWT_REFRESH_KEY);
   if (!verifyToken) {
-    return res.status(401).json({
-      message: "token is expired",
-      error: true,
-      success: false,
-    });
+    throw new Error("token is expired");
   }
   const userId = verifyToken?.id;
   const newAccessToken = await generateAccessToken(userId);
-  const cookieOption = {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-  };
-  res.cookie("accessToken", newAccessToken, cookieOption);
+
   return newAccessToken;
 };
 

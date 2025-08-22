@@ -14,10 +14,14 @@ import auth from "../../middlewares/auth/userAuth.js";
 import upload from "../../middlewares/multer.js";
 import PasswordRouter from "./password.route.js";
 import { getCategories } from "../../controllers/category.controller.js";
+import cartRouter from "./cart.route.js";
+import wishListRouter from "./wishList.route.js";
 
 const userRouter = Router();
 
 userRouter.use("/password", PasswordRouter);
+userRouter.use('/cart', cartRouter)
+userRouter.use("/wishList", wishListRouter)
 
 userRouter.post("/register", registerUser);
 userRouter.post("/verifyEmail", verifyEmailController);

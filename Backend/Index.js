@@ -30,6 +30,7 @@ const accessLogStream = createStream("access.log", {
   interval: "1d",
   path: path.join(__dirname, "log"),
 });
+
 app.use(morgan("combined", { stream: accessLogStream }));
 
 const PORT = process.env.PORT;

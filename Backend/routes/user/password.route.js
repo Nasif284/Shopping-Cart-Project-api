@@ -6,8 +6,8 @@ import {
 } from "../../controllers/user.controller.js";
 const PasswordRouter = Router();
 
-PasswordRouter.post("/password/forgot", forgotPassword);
-PasswordRouter.post("/password/forgot/verify", verifyForgotPasswordOtp);
-PasswordRouter.put("/password/reset", resetPassword);
+PasswordRouter.post("/forgot", forgotPassword);
+PasswordRouter.post("/forgot/verify", verifyForgotPasswordOtp);
+PasswordRouter.put("/reset", resetPassword);
 
 export default PasswordRouter;

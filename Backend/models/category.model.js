@@ -15,12 +15,12 @@ const categorySchema = new mongoose.Schema(
     },
     parentId: {
       type: mongoose.Schema.ObjectId,
-      ref: "category",
+      ref: "Category",
       default: null,
     },
   },
   { timestamps: true }
 );
 
-const categoryModel = mongoose.model("category", categorySchema);
+const categoryModel = mongoose.model("Category", categorySchema);
 export default categoryModel;

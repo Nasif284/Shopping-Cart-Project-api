@@ -4,7 +4,7 @@ import Button from '@mui/material/Button';
 import Rating from "@mui/material/Rating";
 import { MdOutlineZoomOutMap } from "react-icons/md";
 import { FaRegHeart } from "react-icons/fa";
-import { IoGitCompareOutline } from "react-icons/io5";
+import { IoCartOutline, IoGitCompareOutline } from "react-icons/io5";
 import Tooltip from "@mui/material/Tooltip";
 import { ProductContext } from '../../App';
 
@@ -50,6 +50,9 @@ const ProductCard = ({ image }) => {
           <span className="line-through text-gray-500 font-[500] text-[15px]">$120</span>
           <span className="text-primary font-[600] text-[15px] ">$100</span>
         </div>
+      </div>
+      <div className='px-3 pb-3'>
+        <Button className="!bg-white flex gap-3 !rounded-md !text-primary !border-2 border-primary  w-full !font-[500]">        <IoCartOutline className="!text-[19px] !text-black" />Add to Cart</Button>
       </div>
     </div>
   );

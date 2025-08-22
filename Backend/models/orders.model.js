@@ -3,7 +3,7 @@ const ordersSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.ObjectId,
-      ref: "users",
+      ref: "User",
     },
     orderId: {
       type: String,
@@ -12,7 +12,7 @@ const ordersSchema = new mongoose.Schema(
     },
     productId: {
       type: mongoose.Schema.ObjectId,
-      ref: "products",
+      ref: "Product",
     },
     product_details: {
       name: String,
@@ -24,11 +24,12 @@ const ordersSchema = new mongoose.Schema(
     },
     payment_status: {
       type: String,
+      enum: ["pending", "success", "failed"],
       default: "",
     },
     delivery_address: {
       type: mongoose.Schema.ObjectId,
-      ref: "address",
+      ref: "Address",
     },
     subTotalAmt: {
       type: Number,
@@ -47,5 +48,5 @@ const ordersSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-const orderModel = mongoose.model("orders", ordersSchema);
+const orderModel = mongoose.model("Order", ordersSchema);
 export default orderModel;

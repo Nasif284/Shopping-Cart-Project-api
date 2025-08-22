@@ -24,8 +24,23 @@ const Register = () => {
               <TextField id="outlined-basic" label="Full Name" variant="outlined" className="w-full !mb-5 " />
 
               <TextField id="outlined-basic" label="Email Id " variant="outlined" className="w-full !mb-5 " />
-              <FormControl sx={{ width: "100%" }} variant="outlined">
+              <FormControl sx={{ width: "100%" }} variant="outlined" className="w-full !mb-5 ">
                 <InputLabel htmlFor="outlined-adornment-password">Password</InputLabel>
+                <OutlinedInput
+                  id="outlined-adornment-password"
+                  type={showPassword ? "text" : "password"}
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <IconButton aria-label={showPassword ? "hide the password" : "display the password"} onClick={handleClickShowPassword} edge="end">
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  }
+                  label="Password"
+                />
+              </FormControl>
+              <FormControl sx={{ width: "100%" }} variant="outlined">
+                <InputLabel htmlFor="outlined-adornment-password">Confirm Password</InputLabel>
                 <OutlinedInput
                   id="outlined-adornment-password"
                   type={showPassword ? "text" : "password"}

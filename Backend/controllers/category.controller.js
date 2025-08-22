@@ -1,6 +1,3 @@
-import categoryModel from "../models/category.model.js";
-import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
 import {
   createCategoryService,
   deleteCategoryService,
@@ -10,12 +7,6 @@ import {
   removeCatImgFromCloudinaryService,
   updateCategoryService,
 } from "../services/categories.service.js";
-cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.CLOUD_API_KEY,
-  api_secret: process.env.CLOUD_SECRETE_KEY,
-  secure: true,
-});
 
 export const createCategory = async (req, res) => {
   try {

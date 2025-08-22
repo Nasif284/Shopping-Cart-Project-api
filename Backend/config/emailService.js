@@ -1,4 +1,3 @@
-import http from "http";
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({

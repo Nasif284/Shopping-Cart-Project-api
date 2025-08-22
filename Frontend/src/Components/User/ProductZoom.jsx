@@ -17,38 +17,38 @@ const ProductZoom = () => {
   return (
     <div className="flex gap-3 ">
       <div className="slider w-[15%]">
-        <Swiper ref={zoomSliderSml} direction={"vertical"} slidesPerView={5} spaceBetween={0} modules={[Navigation]} navigation={true} className="zoomSlider h-[500px] overflow-hidden">
-          <SwiperSlide>
-            <div className={`item rounded-md group cursor-pointer overflow-hidden ${sliderIndex===0 ? 'opacity-100' :'opacity-30' }`} onClick={() => goto(0)}>
+        <Swiper ref={zoomSliderSml} direction={"vertical"} slidesPerView={5} spaceBetween={10} modules={[Navigation]} navigation={true} className="zoomSlider h-[500px] overflow-hidden ">
+          <SwiperSlide className="!mb-3">
+            <div className={`item rounded-md group cursor-pointer overflow-hidden ${sliderIndex === 0 ? "opacity-100" : "opacity-30"}`} onClick={() => goto(0)}>
               <img src="https://api.spicezgold.com/download/file_1734529918447_miss-ayse-women-s-multicolor-crepe-printed-top-product-images-rvvlrud6qm-0-202410111253.webp" className="w-full group-hover:scale-110 " alt="" />
             </div>
           </SwiperSlide>
-          <SwiperSlide>
+          <SwiperSlide className="!mb-3">
             <div className="item rounded-md group cursor-pointer overflow-hidden " onClick={() => goto(1)}>
               <img src="https://api.spicezgold.com/download/file_1734529918450_miss-ayse-women-s-multicolor-crepe-printed-top-product-images-rvvlrud6qm-1-202410111253.webp" alt="" />
             </div>
           </SwiperSlide>
-          <SwiperSlide>
+          <SwiperSlide className="!mb-3">
             <div className="item rounded-md group cursor-pointer overflow-hidden " onClick={() => goto(2)}>
               <img src="https://api.spicezgold.com/download/file_1734529918447_miss-ayse-women-s-multicolor-crepe-printed-top-product-images-rvvlrud6qm-0-202410111253.webp" className="w-full group-hover:scale-110 " alt="" />
             </div>
           </SwiperSlide>
-          <SwiperSlide>
+          <SwiperSlide className="!mb-3">
             <div className="item rounded-md group cursor-pointer overflow-hidden " onClick={() => goto(3)}>
               <img src="https://api.spicezgold.com/download/file_1734529918450_miss-ayse-women-s-multicolor-crepe-printed-top-product-images-rvvlrud6qm-1-202410111253.webp" alt="" />
             </div>
           </SwiperSlide>
-          <SwiperSlide>
+          <SwiperSlide className="!mb-3">
             <div className="item rounded-md group cursor-pointer overflow-hidden " onClick={() => goto(4)}>
               <img src="https://api.spicezgold.com/download/file_1734529918447_miss-ayse-women-s-multicolor-crepe-printed-top-product-images-rvvlrud6qm-0-202410111253.webp" className="w-full group-hover:scale-110 " alt="" />
             </div>
           </SwiperSlide>
-          <SwiperSlide>
+          <SwiperSlide className="!mb-3">
             <div className="item rounded-md group cursor-pointer overflow-hidden " onClick={() => goto(5)}>
               <img src="https://api.spicezgold.com/download/file_1734529918450_miss-ayse-women-s-multicolor-crepe-printed-top-product-images-rvvlrud6qm-1-202410111253.webp" alt="" />
             </div>
-                  </SwiperSlide>
-                  <SwiperSlide></SwiperSlide>
+          </SwiperSlide>
+          <SwiperSlide></SwiperSlide>
         </Swiper>
       </div>
       <div className="zoomContainer h-[500px] overflow-hidden  w-[85%]">

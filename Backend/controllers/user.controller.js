@@ -222,6 +222,12 @@ export const refreshToken = async (req, res) => {
       });
     }
     const newAccessToken = await refreshTokenService(token);
+    const cookieOption = {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    };
+    res.cookie("accessToken", newAccessToken, cookieOption);
     return res.status(200).json({
       message: "new access token assigned",
       success: true,
