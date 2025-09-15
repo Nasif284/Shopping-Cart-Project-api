@@ -1,18 +1,32 @@
 import { Router } from "express";
 import {
   addProductsController,
-  deleteProductController,
-  getAllFeaturedProductsController,
   getAllProductsController,
-  getProductById,
+  getProductByIdController,
+  getSearchSuggestions,
+  unlistProductController,
+  updateProductController,
 } from "../../controllers/product.controller.js";
-import upload from "../../middlewares/multer.js";
+import upload from "../../middlewares/multer/multer.js"; 
 import { asyncHandler } from "../../middlewares/Error/asyncHandler.js";
+import adminAuth from "../../middlewares/auth/adminAuth.js";
+import variantRouter from "./variants.route.js";
+import { editProductValidation, productValidation } from "../../middlewares/validation/validationSchamas.js";
+import { validationErrorHandle } from "../../middlewares/validation/validationHandle.js";
 const productsRouter = Router();
-productsRouter.get("/", asyncHandler(getAllProductsController));
-productsRouter.get("/featured", asyncHandler(getAllFeaturedProductsController));
-productsRouter.get("/:id", asyncHandler(getProductById));
-productsRouter.delete("/:id", asyncHandler(deleteProductController));
-productsRouter.post("/", upload.any(), asyncHandler(addProductsController));
 
+productsRouter.use("/variants", variantRouter)
+
+productsRouter.get("/", asyncHandler(getAllProductsController));
+productsRouter.post(
+  "/",
+  upload.any(),
+  productValidation,
+  validationErrorHandle,
+  asyncHandler(addProductsController)
+);
+productsRouter.put("/:id",editProductValidation,validationErrorHandle, adminAuth, asyncHandler(updateProductController))
+productsRouter.get("/:id",asyncHandler(getProductByIdController))
+productsRouter.patch("/unlist/:id", adminAuth, asyncHandler(unlistProductController))
+productsRouter.get("/search/suggestions",asyncHandler(getSearchSuggestions))
 export default productsRouter;

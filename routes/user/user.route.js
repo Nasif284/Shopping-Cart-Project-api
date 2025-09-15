@@ -1,42 +1,79 @@
 import { Router } from "express";
 import {
+  authMe,
+  chatController,
+  facebookAuth,
   getLoginUserDetails,
+  googleAuth,
   loginController,
   logoutController,
   refreshToken,
   registerUser,
   removeImgFromCloudinary,
   resendOtp,
-  updateUserDetails,
   userImageController,
   verifyEmailController,
 } from "../../controllers/user.controller.js";
-import auth from "../../middlewares/auth/userAuth.js";
-import upload from "../../middlewares/multer.js";
+import upload from "../../middlewares/multer/multer.js"; 
 import PasswordRouter from "./password.route.js";
-import { getCategories } from "../../controllers/category.controller.js";
-import cartRouter from "./cart.route.js";
-import wishListRouter from "./wishList.route.js";
-import { signupValidation } from "../../middlewares/validation/validationSchamas.js";
+import { getAllCategories } from "../../controllers/category.controller.js";
+import {
+  loginValidation,
+  signupValidation,
+} from "../../middlewares/validation/validationSchamas.js";
 import { validationErrorHandle } from "../../middlewares/validation/validationHandle.js";
 import { asyncHandler } from "../../middlewares/Error/asyncHandler.js";
+import userAuth from "../../middlewares/auth/UserAuth.js";
+import passport from "passport";
 
 const userRouter = Router();
 
 userRouter.use("/password", PasswordRouter);
-userRouter.use("/cart", cartRouter);
-userRouter.use("/wishList", wishListRouter);
 
 userRouter.post("/register", signupValidation, validationErrorHandle, asyncHandler(registerUser));
 userRouter.post("/verify", asyncHandler(verifyEmailController));
-userRouter.post("/resend",resendOtp)
-userRouter.post("/login", asyncHandler(loginController));
-userRouter.get("/logout", auth, asyncHandler(logoutController));
-userRouter.put("/imageUpload", auth, upload.single("image"), asyncHandler(userImageController));
-userRouter.delete("/deleteImage", auth, asyncHandler(removeImgFromCloudinary));
-userRouter.put("/update/:id", auth, asyncHandler(updateUserDetails));
-userRouter.post("/refresh-toke", asyncHandler(refreshToken));
-userRouter.get("/userDetails", auth, asyncHandler(getLoginUserDetails));
-userRouter.get("/categories", auth, asyncHandler(getCategories));
+userRouter.post("/resend", resendOtp);
+userRouter.post("/login", loginValidation, validationErrorHandle, asyncHandler(loginController));
+userRouter.get(
+  "/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+    prompt: "select_account",
+  })
+);
+userRouter.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    failureRedirect: `${process.env.FRONTEND_URL}/login?error=server_error&message=${encodeURIComponent("Authentication failed, User Is Blocked")}`,
+    session: false,
+  }),
+  googleAuth
+);
+userRouter.get(
+  "/facebook",
+  passport.authenticate("facebook", {
+    scope: ["email", "public_profile"],
+    failureRedirect: `${process.env.FRONTEND_URL}/login?error=server_error&message=${encodeURIComponent("Authentication failed, User Is Blocked")}`,
+    session: false,
+  })
+);
+userRouter.get(
+  "/facebook/callback",
+  passport.authenticate("facebook", {
+    failureRedirect: process.env.FRONTEND_URL + "/login",
+    session: false,
+  }),
+  facebookAuth
+);
+
+userRouter.get("/logout", userAuth, asyncHandler(logoutController));
+userRouter.put("/imageUpload", userAuth, upload.single("image"), asyncHandler(userImageController));
+userRouter.delete("/deleteImage", userAuth, asyncHandler(removeImgFromCloudinary));
+userRouter.get("/refresh", asyncHandler(refreshToken));
+userRouter.get("/userDetails", userAuth, asyncHandler(getLoginUserDetails));
+userRouter.get("/categories", userAuth, asyncHandler(getAllCategories));
+userRouter.get("/auth", userAuth, asyncHandler(authMe));
+userRouter.post("/chat",asyncHandler(chatController) )
 
 export default userRouter;

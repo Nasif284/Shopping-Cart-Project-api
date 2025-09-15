@@ -1,11 +1,9 @@
 import AppError from "../middlewares/Error/appError.js";
 import {
+  blockCategoryService,
   createCategoryService,
-  deleteCategoryService,
   getCategoriesService,
-  getCategoryCountService,
-  getCategoryService,
-  removeCatImgFromCloudinaryService,
+  getCatsByLevelService,
   updateCategoryService,
 } from "../services/categories.service.js";
 import { STATUS_CODES } from "../utils/statusCodes.js";
@@ -24,67 +22,19 @@ export const createCategory = async (req, res) => {
   });
 };
 
-export const getCategories = async (req, res) => {
-  const { categoryMap, rootCategories } = await getCategoriesService();
+export const getAllCategories = async (req, res) => {
+  let { categoryMap, rootTree: rootCategories } = await getCategoriesService();
   return res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
-    data: {
-      rootCategories,
-      categoryMap,
-    },
-  });
-};
-
-export const getCategoryCount = async (req, res) => {
-  const categoryCount = await getCategoryCountService();
-  return res.status(STATUS_CODES.OK).json({
-    categoryCount: categoryCount,
-  });
-};
-
-export const getSubCategoryCount = async (req, res) => {
-  const count = await getSubCategoryCount();
-  return res.status(STATUS_CODES.OK).json({
-    subCategoryCount: count,
-  });
-};
-
-export const getCategory = async (req, res) => {
-  const category = await getCategoryService(req.params.id);
-  if (!category) {
-    throw new AppError("Category not found with given ID", STATUS_CODES.NOT_FOUND);
-  }
-  return res.status(STATUS_CODES.OK).json({
-    error: false,
-    success: true,
-    category: category,
-  });
-};
-
-export const removeCatImgFromCloudinary = async (req, res) => {
-  const catImage = req.query.img;
-  if (!catImage) {
-    throw new AppError("Image URL is required", STATUS_CODES.BAD_REQUEST);
-  }
-  const del = await removeCatImgFromCloudinaryService(catImage);
-  return res.status(STATUS_CODES.OK).send(del);
-};
-
-export const deleteCategory = async (req, res) => {
-  const deleted = await deleteCategoryService(req.params.id);
-  if (!deleted) {
-    throw new AppError("Category not found or could not be deleted", STATUS_CODES.NOT_FOUND);
-  }
-  return res.status(STATUS_CODES.OK).json({
-    message: "Category deleted successfully",
-    error: false,
-    success: true,
+    rootCategories,
+    categoryMap,
   });
 };
 
 export const updateCategory = async (req, res) => {
   const image = req.file;
+  console.log(req.body);
   const updated = await updateCategoryService(req.params.id, image, req.body);
   if (!updated) {
     throw new AppError("Category could not be updated", STATUS_CODES.INTERNAL_SERVER_ERROR);
@@ -94,5 +44,44 @@ export const updateCategory = async (req, res) => {
     success: true,
     error: false,
     category: updated,
+  });
+};
+
+export const getCategoriesByLevel = async(req,res) => {
+  const level = req.params.level;
+  const perPage = req?.query?.perPage
+  const page = req?.query?.page 
+  if (perPage, page) {
+    const { categories, totalPosts, totalPages,} = await getCatsByLevelService(level, page, perPage);
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      error: false,
+      categories,
+      totalPosts,
+      totalPages,
+      page,
+      perPage,
+    });
+  } else {
+    const categories = await getCatsByLevelService(level, page, perPage);
+     return res.status(STATUS_CODES.OK).json({
+       success: true,
+       error: false,
+       categories,
+     });
+  }
+}
+
+
+export const blockCategory = async (req, res) => {
+  const id = req.params.id;
+  const category = await blockCategoryService(id);
+  return res.status(STATUS_CODES.OK).json({
+    success: true,
+    error: false,
+    category,
+    message: category.isBlocked
+      ? "Category Blocked Successfully "
+      : "Category Unblocked Successfully",
   });
 };

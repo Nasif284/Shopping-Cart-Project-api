@@ -1,18 +1,19 @@
 import AppError from "../middlewares/Error/appError.js";
-import userModel from "../models/user.model.js";
 import {
+  authMeService,
+  chatService,
+  facebookAuthService,
   forgotPasswordServices,
   getLoginUserDetailsService,
+  googleAuthService,
   refreshTokenService,
   registerUserService,
   removeImgFromCloudinaryService,
   resendOtpService,
   resetPasswordService,
-  updateUserDetailsService,
   userImageUploadService,
   userLoginService,
   verifyEmailService,
-  verifyForgotPasswordOtpService,
 } from "../services/user.service.js";
 import { STATUS_CODES } from "../utils/statusCodes.js";
 
@@ -21,11 +22,11 @@ export async function registerUser(req, res) {
   if (!name || !email || !password) {
     throw new AppError("Provide email, name, and password", STATUS_CODES.BAD_REQUEST);
   }
-  const { token } = await registerUserService({ name, email, password });
+  const user = await registerUserService({ name, email, password });
   return res.status(STATUS_CODES.OK).json({
     success: true,
     message: "User registered successfully , please verify your email",
-    token: token,
+    user,
   });
 }
 
@@ -44,18 +45,18 @@ export const verifyEmailController = async (req, res) => {
 export const resendOtp = async (req, res) => {
   const { email } = req.body;
   await resendOtpService(email);
-    return res.status(STATUS_CODES.OK).json({
-      success: true,
-      error: false,
-      message: "OTP Resend successfully ",
-    });
+  return res.status(STATUS_CODES.OK).json({
+    success: true,
+    error: false,
+    message: "OTP Resend successfully ",
+  });
 };
 export const loginController = async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     throw new AppError("Email and password are required", STATUS_CODES.BAD_REQUEST);
   }
-  const { accessToken, refreshToken } = await userLoginService({ email, password });
+  const { accessToken, refreshToken, user } = await userLoginService({ email, password });
 
   const isProduction = process.env.NODE_ENV === "production";
   const cookieOption = {
@@ -70,17 +71,58 @@ export const loginController = async (req, res) => {
     message: "login Successfully",
     error: false,
     success: true,
-    data: {
-      accessToken,
-      refreshToken,
-    },
+    user,
   });
 };
 
+export const googleAuth = async (req, res) => {
+  const user = req.user;
+  if (!user) {
+    throw new AppError("Google authentication failed", STATUS_CODES.NOT_FOUND);
+  }
+  const { accessToken, refreshToken } = await googleAuthService(user);
+  const isProduction = process.env.NODE_ENV === "production";
+  const cookieOption = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+  };
+
+  res.cookie("accessToken", accessToken, cookieOption);
+  res.cookie("refreshToken", refreshToken, cookieOption);
+  return res.redirect(process.env.FRONTEND_URL + "/");
+};
+export const facebookAuth = async (req, res) => {
+  const user = req.user;
+  if (!user) {
+    throw new AppError("Facebook authentication failed", STATUS_CODES.NOT_FOUND);
+  }
+  const { accessToken, refreshToken } = await facebookAuthService(user);
+
+  const isProduction = process.env.NODE_ENV === "production";
+  const cookieOption = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+  };
+
+  res.cookie("accessToken", accessToken, cookieOption);
+  res.cookie("refreshToken", refreshToken, cookieOption);
+
+  return res.redirect(process.env.FRONTEND_URL + "/");
+};
+
+
+
 export const logoutController = async (req, res) => {
-  const cookieOptions = { httpOnly: true, secure: true, sameSite: "none" };
-  res.clearCookie("accessToken", cookieOptions);
-  res.clearCookie("refreshToken", cookieOptions);
+  const isProduction = process.env.NODE_ENV === "production";
+  const cookieOption = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+  };
+  res.clearCookie("accessToken", cookieOption);
+  res.clearCookie("refreshToken", cookieOption);
   return res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
@@ -107,64 +149,31 @@ export const removeImgFromCloudinary = async (req, res) => {
   return res.status(STATUS_CODES.OK).send(del);
 };
 
-export const updateUserDetails = async (req, res) => {
-  const userId = req.params.id;
-  if (!userId) {
-    throw new AppError("User ID is required", STATUS_CODES.BAD_REQUEST);
-  }
-  const updatedUser = updateUserDetailsService(userId, req.body);
-  return res.status(STATUS_CODES.OK).json({
-    success: true,
-    error: false,
-    message: "user details updated successfully",
-    user: updatedUser,
-  });
-};
 
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
   if (!email) {
-    throw new AppError("Email is required", STATUS_CODES.BAD_REQUEST);
+    throw new AppError("Please enter email", STATUS_CODES.BAD_REQUEST);
   }
   await forgotPasswordServices(email);
   return res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
-    message: "Check your email",
-  });
-};
-
-export const verifyForgotPasswordOtp = async (req, res) => {
-  const { email, otp } = req.body;
-  if (!email || !otp) {
-    throw new AppError("Email and OTP are required", STATUS_CODES.BAD_REQUEST);
-  }
-  await verifyForgotPasswordOtpService(email, otp);
-  return res.status(STATUS_CODES.OK).json({
-    success: true,
-    error: false,
-    message: "Email verified successfully",
+    message: "OTP send to your email",
   });
 };
 
 export const resetPassword = async (req, res) => {
   const { email, newPassword, confirmPassword } = req.body;
+  console.log(email, newPassword, confirmPassword);
   if (!email || !newPassword || !confirmPassword) {
     throw new AppError("All fields are required", STATUS_CODES.BAD_REQUEST);
   }
-  if (!email || !newPassword || !confirmPassword) {
-    res.status(STATUS_CODES.OK).json({
-      message: "please provide all fields",
-      success: false,
-      error: true,
-    });
-  }
   if (newPassword !== confirmPassword) {
-    res.status(STATUS_CODES.OK).json({
-      message: "new password and confirm password does not match",
-      success: false,
-      error: true,
-    });
+    throw new AppError(
+      "new password and confirm password does not match",
+      STATUS_CODES.BAD_REQUEST
+    );
   }
   await resetPasswordService(email, newPassword);
   return res.status(STATUS_CODES.OK).json({
@@ -175,23 +184,26 @@ export const resetPassword = async (req, res) => {
 };
 
 export const refreshToken = async (req, res) => {
-  const token = req.cookies.refreshToken || req?.header?.authorization?.split(" ")[1];
+  const token = req.cookies.refreshToken 
   if (!token) {
     throw new AppError("Please provide token", STATUS_CODES.UNAUTHORIZED);
   }
-  const newAccessToken = await refreshTokenService(token);
+  const {newAccessToken,refreshToken} = await refreshTokenService(token);
+  const isProduction = process.env.NODE_ENV === "production";
   const cookieOption = {
     httpOnly: true,
-    secure: true,
-    sameSite: "none",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
   };
   res.cookie("accessToken", newAccessToken, cookieOption);
+  res.cookie("refreshToken", refreshToken, cookieOption);
   return res.status(STATUS_CODES.OK).json({
     message: "new access token assigned",
     success: true,
     error: false,
     data: {
       accessToken: newAccessToken,
+      refreshToken
     },
   });
 };
@@ -205,3 +217,19 @@ export const getLoginUserDetails = async (req, res) => {
     error: false,
   });
 };
+
+export const authMe = async (req, res) => {
+  const userId = req.userId;
+  const user = await authMeService(userId);
+  res.status(STATUS_CODES.OK).json({ user });
+};
+
+export const chatController = async (req, res) => {
+  const userId= req?.userId
+   const reply = await chatService(req.body,userId)
+  return res.status(STATUS_CODES.OK).json({
+    success: true,
+    error: false,
+    reply
+  });
+}

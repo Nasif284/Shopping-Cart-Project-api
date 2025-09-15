@@ -13,7 +13,6 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "password is required"],
     },
     image: {
       type: String,
@@ -23,31 +22,23 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
-    verify_email: {
-      type: Boolean,
-      default: false,
-    },
     last_login_date: {
       type: Date,
       default: "",
     },
-    status: {
-      type: String,
-      enum: ["active", "inactive", "Blocked"],
-      default: "active",
+    isBlocked: {
+      type: Boolean,
+      default: false,
     },
-    otp: {
-      type: String,
-    },
-    otp_expiry: {
-      type: Date,
-    },
-    role: {
-      type: String,
-      enum: ["ADMIN", "USER"],
-      default: "USER",
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
     refresh_token: {
+      type: String,
+      default: "",
+    },
+    googleId: {
       type: String,
       default: "",
     },

@@ -12,11 +12,20 @@ const categorySchema = new mongoose.Schema(
     },
     parentCatName: {
       type: String,
+      default:""
     },
     parentId: {
       type: mongoose.Schema.ObjectId,
       ref: "Category",
       default: null,
+    },
+    level: {
+      type: String,
+      default: "first",
+    },
+    isBlocked: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

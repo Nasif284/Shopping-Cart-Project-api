@@ -3,190 +3,511 @@ import AppError from "../middlewares/Error/appError.js";
 import categoryModel from "../models/category.model.js";
 import productModel from "../models/product.model.js";
 import { v2 as cloudinary } from "cloudinary";
+import variantModel from "../models/variant.schema.js";
 import fs from "fs";
-import cartModel from "../models/cart.model.js";
-import WishListModel from "../models/wishList.model.js";
-
-export const addProductService = async (
-  { name, description, brand, catName, subCatName, thirdCatName, discount, variants },
-  files
-) => {
-  let parsedVariants = JSON.parse(variants);
-  const options = { use_filename: true, unique_filename: false, overwrite: false };
-  let productVariants = await Promise.all(
-    parsedVariants.map(async (variant, i) => {
-      let variantImages = [];
-      if (files && files[`variant_${i}`]) {
-        for (let file of files[`variant_${i}`]) {
-          const result = await cloudinary.uploader.upload(file.path, options);
-          variantImages.push(result.secure_url);
-          fs.unlinkSync(file.path);
-        }
-      }
-      return { ...variant, images: variantImages };
-    })
-  );
-  let catId = await categoryModel.findOne({ name: catName });
-  let subCatId = await categoryModel.findOne({ name: subCatName });
-  let thirdCatId = await categoryModel.findOne({ name: thirdCatName });
-  let newProduct = new productModel({
+import mongoose from "mongoose";
+export const addProductService = async (body, imagesByVariant) => {
+  const { name, description, brand, category, subCategory, thirdCategory, variants, isFeatured } =
+    body;
+  let catId = await categoryModel.findOne({ name: category });
+  let subCatId = await categoryModel.findOne({ name: subCategory });
+  let thirdCatId = await categoryModel.findOne({ name: thirdCategory });
+  let newProduct = await productModel.create({
     name,
     description,
     brand,
     categoryId: catId?._id,
-    subCatId: subCatId?._id,
+    subCategoryId: subCatId?._id,
     thirdSubCategoryId: thirdCatId?._id,
-    discount,
-    variants: productVariants,
+    isFeatured,
   });
-  const product = await newProduct.save();
-  return product;
+
+  const variantDocs = [];
+  const options = {
+    folder: "products",
+    use_filename: true,
+    unique_filename: false,
+    overwrite: false,
+  };
+  let firstImage = null;
+  for (let i = 0; i < variants.length; i++) {
+    const v = variants[i];
+    let imgUrlArr = [];
+    if (imagesByVariant[i]) {
+      for (let img of imagesByVariant[i]) {
+        const result = await cloudinary.uploader.upload(img.path, options);
+        fs.unlinkSync(`uploads/${img.filename}`);
+        imgUrlArr.push(result.secure_url);
+      }
+    }
+    if (imgUrlArr.length > 0 && i == 0) {
+      firstImage = imgUrlArr[0];
+    }
+    const discount = Math.round(((v.oldPrice - v.price) / v.oldPrice) * 100);
+    const newVariant = await variantModel.create({
+      productId: newProduct._id,
+      color: v.color,
+      size: v.size,
+      weight: v.weight,
+      price: v.price,
+      oldPrice: v.oldPrice,
+      stock: v.stock,
+      images: imgUrlArr,
+      discount,
+    });
+    await productModel.findByIdAndUpdate(newProduct._id, { $push: { variants: newVariant._id } });
+    variantDocs.push(newVariant);
+  }
+  await productModel.findByIdAndUpdate(newProduct._id, { $set: { thumbnail: firstImage } });
+  return { newProduct, variantDocs };
 };
 
+export const getAllProductsService = async (query, page, perPage) => {
+  let filter = { isUnlisted: false };
+  function capitalizeFirstLetter(value) {
+    if (!value) return "";
 
-export const getAllProductsService = async (query,page,perPage) => {
-  let filter = {};
-  
-    if (query.category) {
-      const cat = await categoryModel.findOne({ name: query.category });
-      if (cat) filter.categoryId = cat?._id;
+    if (Array.isArray(value)) {
+      return value.map((v) =>
+        v
+          .split(" ")
+          .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+          .join(" ")
+      );
     }
-    if (query.subCategory) {
-      const cat = await categoryModel.findOne({ name: query.subCategory });
-      if (cat) filter.subCategoryId = cat?._id;
+
+    return value
+      .split(" ")
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join(" ");
+  }
+
+  if (query.category && query.category.length) {
+    const cats = await categoryModel.find({
+      name: {
+        $in: capitalizeFirstLetter(query.category),
+      },
+      isBlocked: false,
+    });
+    if (cats.length) filter.categoryId = { $in: cats.map((c) => c._id) };
+    else {
+      return { products: [], totalPages: 0, totalPosts: 0 };
     }
-    if (query.thirdCategory) {
-      const cat = await categoryModel.findOne({ name: query.thirdCategory });
-      if (cat) filter.thirdSubCategoryId = cat?._id;
+  }
+
+  if (query.subCategory && query.subCategory.length) {
+    const cats = await categoryModel.find({
+      name: {
+        $in: capitalizeFirstLetter(query.subCategory),
+      },
+      isBlocked: false,
+    });
+    if (cats.length) filter.subCategoryId = { $in: cats.map((c) => c._id) };
+    else {
+      return { products: [], totalPages: 0, totalPosts: 0 };
     }
-    if (query.rating) {
-      filter.rating = query.rating;
+  }
+
+  if (query.thirdCategory && query.thirdCategory.length) {
+    const cats = await categoryModel.find({
+      name: {
+        $in: capitalizeFirstLetter(query.thirdCategory),
+      },
+      isBlocked: false,
+    });
+    if (cats.length) filter.thirdSubCategoryId = { $in: cats.map((c) => c._id) };
+    else {
+      return { products: [], totalPages: 0, totalPosts: 0 };
     }
-    if (query.minPrice || query.maxPrice) {
-      filter["variants.price"] = {};
-      if (query.minPrice) {
-        filter["variants.price"].$gte = parseInt(query.minPrice);
-      }
-      if (query.maxPrice) {
-        filter["variants.price"].$lte = parseInt(query.maxPrice);
-      }
+  }
+
+  if (query.search) {
+    const matchedCategories = await categoryModel
+      .find({
+        name: { $regex: query.search, $options: "i" },
+      })
+      .select("_id");
+
+    filter.$or = [
+      { name: { $regex: query.search, $options: "i" } },
+      { description: { $regex: query.search, $options: "i" } },
+    ];
+
+    if (matchedCategories.length) {
+      filter.$or.push(
+        { categoryId: { $in: matchedCategories.map((c) => c._id) } },
+        { subCategoryId: { $in: matchedCategories.map((c) => c._id) } },
+        { thirdSubCategoryId: { $in: matchedCategories.map((c) => c._id) } }
+      );
     }
-    const totalPosts = await productModel.countDocuments(filter);
+  }
+  if (query.isFeatured && query.isFeatured === "true") {
+    filter.isFeatured = true;
+  }
+  filter.isUnlisted = false;
+  if (query.related) {
+    filter._id = { $ne: new mongoose.Types.ObjectId(query.related) };
+  }
+
+  let pipeline = [
+    {
+      $match: filter,
+    },
+    {
+      $lookup: {
+        from: "variants",
+        localField: "variants",
+        foreignField: "_id",
+        as: "variants",
+        pipeline: [{ $match: { isUnlisted: false } }],
+      },
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "categoryId",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "subCategoryId",
+        foreignField: "_id",
+        as: "subCategory",
+      },
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "thirdSubCategoryId",
+        foreignField: "_id",
+        as: "thirdCategory",
+      },
+    },
+    { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$subCategory", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$thirdCategory", preserveNullAndEmptyArrays: true } },
+    {
+      $match: {
+        "category.isBlocked": { $ne: true },
+        "subCategory.isBlocked": { $ne: true },
+        "thirdCategory.isBlocked": { $ne: true },
+      },
+    },
+    {
+      $addFields: {
+        defaultVariant: {
+          $arrayElemAt: [{ $sortArray: { input: "$variants", sortBy: { price: 1 } } }, 0],
+        },
+        stock: {
+          $sum: "$variants.stock",
+        },
+      },
+    },
+  ];
+
+  if (query.minPrice || query.maxPrice) {
+    let priceFilter = {};
+    if (query.minPrice) priceFilter.$gte = parseInt(query.minPrice);
+    if (query.maxPrice) priceFilter.$lte = parseInt(query.maxPrice);
+
+    pipeline.push({
+      $match: { "defaultVariant.price": priceFilter },
+    });
+  }
+  if (query.availability && query.availability === "true") {
+    pipeline.push({
+      $match: { stock: { $gt: 0 } },
+    });
+  }
+  if (query.sizes) {
+    pipeline.push({
+      $match: { "variants.size": { $in: query.sizes } },
+    });
+  }
+  if (query.rating) {
+    const ratings = query.rating.map((r) => parseInt(r));
+
+    pipeline.push({
+      $match: {
+        $and: [{ rating: { $in: ratings } }, { rating: { $ne: 0 } }],
+      },
+    });
+  }
+  if (query.latest) {
+    pipeline.push({ $limit: 15 });
+  }
+  if (query.discount) {
+    const minDiscount = parseInt(query.discount);
+    pipeline.push({
+      $match: { "defaultVariant.discount": { $gte: minDiscount } },
+    });
+  }
+  if (query.sortBy === "lowToHigh") {
+    pipeline.push({ $sort: { "defaultVariant.price": 1 } });
+  } else if (query.sortBy === "highToLow") {
+    pipeline.push({ $sort: { "defaultVariant.price": -1 } });
+  } else if (query.sortBy === "aToZ") {
+    pipeline.push({ $sort: { name: 1 } });
+  } else if (query.sortBy === "zToA") {
+    pipeline.push({ $sort: { name: -1 } });
+  } else {
+    pipeline.push({ $sort: { createdAt: -1 } });
+  }
+
+  if (perPage && page) {
+    pipeline.push({
+      $facet: {
+        data: [{ $skip: (page - 1) * perPage }, { $limit: perPage }],
+        totalCount: [{ $count: "count" }],
+      },
+    });
+    const result = await productModel.aggregate(pipeline);
+    const products = result[0]?.data || [];
+    const totalPosts = result[0]?.totalCount[0]?.count || 0;
     const totalPages = Math.ceil(totalPosts / perPage);
+
     if (page > totalPages && totalPages > 0) {
       throw new AppError("Page not found", STATUS_CODES.BAD_REQUEST);
     }
-  
-    const products = await productModel
-      .find(filter)
-      .populate("categoryId")
-      .skip((page - 1) * perPage)
-      .limit(perPage)
-    .exec();
-  return {totalPages,products};
-}
 
-export const getAllFeaturedService = async() => {
-    const products = await productModel.find({ isFeatured: true });
-    if (products.length === 0) {
-      throw new AppError("Featured products not found", STATUS_CODES.NOT_FOUND);
+    return { totalPages, products, totalPosts };
   }
-  return products;
-}
+  const products = await productModel.aggregate(pipeline);
+  return { products };
+};
 
-export const getProductByIdService = async(id) => {
-    const product = await productModel.findById(id);
-    if (!product) {
-      throw new AppError("Product not found with this ID", STATUS_CODES.NOT_FOUND);
-  }
+export const updateProductService = async (id, body) => {
+  const product = await productModel.findById(id);
+  const { name, description, brand, isFeatured, category, subCategory, thirdCategory, discount } =
+    body;
+  let catId = await categoryModel.findOne({ name: category });
+  let subCatId = await categoryModel.findOne({ name: subCategory });
+  let thirdCatId = await categoryModel.findOne({ name: thirdCategory });
+
+  product.name = name;
+  product.description = description;
+  product.brand = brand;
+  product.categoryId = catId?._id;
+  product.subCategoryId = subCatId?._id;
+  product.thirdSubCategoryId = thirdCatId?._id;
+  product.discount = discount;
+  product.isFeatured = isFeatured === "Yes";
+
+  await product.save();
+};
+
+export const unlistProductService = async (id) => {
+  const product = await productModel.findByIdAndUpdate(
+    id,
+    [{ $set: { isUnlisted: { $not: "$isUnlisted" } } }],
+    { new: true }
+  );
   return product;
-}
+};
 
-export const deleteProduct =async(id) => {
-    const product = await productModel.findById(id);
-  if (!product) {
-    throw new AppError("Product not found", STATUS_CODES.NOT_FOUND);
-  }
-  if (product.variants && product.variants.length > 0) {
-    for (let variant of product.variants) {
-      if (variant.images) {
-        for (let image of variant.images) {
-          let url = image.split("/").pop().split(".")[0];
-          await cloudinary.uploader.destroy(url);
-        }
-      }
-    }
-  }
-  const existInCart = await cartModel.findOne({ productId: product._id });
-  if (existInCart) {
-    await cartModel.findOneAndDelete({ productId: product._id });
-  }
-  const existInWishList = await WishListModel.findOne({ productId: product._id });
-  if (existInWishList) {
-    await WishListModel.findOneAndDelete({ productId: product._id });
-  }
-  await productModel.findByIdAndDelete(id);
-}
+export const getVariantsService = async (id) => {
+  const variants = await variantModel.find({ productId: id });
+  return variants;
+};
 
-export const updateProductService = async(id,updates,files) => {
-    const product = await productModel.findById(id);
-  if (!product) {
-    throw new AppError("Product not found", STATUS_CODES.NOT_FOUND);
-  }
-  const fieldsToUpdate = ["name", "description", "brand", "discount", "tags", "isFeatured"];
-  fieldsToUpdate.forEach((field) => {
-    if (updates[field] !== undefined) {
-      product[field] = updates[field];
+export const getProductByIdService = async (id) => {
+  let pipeline = [
+    { $match: { _id: new mongoose.Types.ObjectId(id) } },
+    {
+      $lookup: {
+        from: "variants",
+        localField: "variants",
+        foreignField: "_id",
+        as: "variants",
+        pipeline: [{ $match: { isUnlisted: false } }],
+      },
+    },
+
+    {
+      $lookup: {
+        from: "categories",
+        localField: "categoryId",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "subCategoryId",
+        foreignField: "_id",
+        as: "subCategory",
+      },
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "thirdSubCategoryId",
+        foreignField: "_id",
+        as: "thirdCategory",
+      },
+    },
+
+    { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$subCategory", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$thirdCategory", preserveNullAndEmptyArrays: true } },
+
+    {
+      $addFields: {
+        defaultVariant: {
+          $arrayElemAt: [{ $sortArray: { input: "$variants", sortBy: { price: 1 } } }, 0],
+        },
+        stock: { $sum: "$variants.stock" },
+      },
+    },
+    {
+      $addFields: {
+        variants: {
+          $filter: {
+            input: "$variants",
+            as: "variant",
+            cond: { $ne: ["$$variant._id", "$defaultVariant._id"] },
+          },
+        },
+      },
+    },
+  ];
+
+  const products = await productModel.aggregate(pipeline);
+  const product = products[0];
+  const groupedVariants = {};
+  [product.defaultVariant, ...product.variants].forEach((variant) => {
+    const { color, size, price, stock, _id, images, oldPrice, discount } = variant;
+
+    if (!groupedVariants[color]) {
+      groupedVariants[color] = {
+        color,
+        variants: [],
+      };
     }
-  });
-  if (updates["catName"]) {
-    const cat = await categoryModel.findOne({ name: updates["catName"] });
-    product.categoryId = cat?._id;
-  }
-  if (updates["SubCatName"]) {
-    const cat = await categoryModel.findOne({ name: updates["SubCatName"] });
-    product.subCategoryId = cat?._id;
-  }
-  if (updates["thirdCatName"]) {
-    const cat = await categoryModel.findOne({ name: updates["thirdCatName"] });
-    product.thirdSubCategoryId = cat?._id;
-  }
-  if (updates.variants && Array.isArray(updates.variants)) {
-    updates.variants.forEach((variantData, index) => {
-      if (product.variants[index]) {
-        product.variants[index] = {
-          ...product.variants[index]._doc,
-          ...variantData,
-        };
-      } else {
-        product.variants.push({
-          ...variantData,
-          images: [],
-        });
-      }
+    groupedVariants[color].variants.push({
+      size,
+      price,
+      stock,
+      oldPrice,
+      _id,
+      images,
+      discount,
     });
-  }
-  for (let keys in files) {
-    if (keys.startsWith("variants_")) {
-      const index = parseInt(keys.split("_")[1]);
-      const variant = product.variants[index];
+  });
 
-      if (!variant) continue;
-      if (variant.images && variant.images.length > 0) {
-        for (let imgUrl of variant.images) {
-          const publicId = imgUrl.split("/").pop().split(".")[0];
-          await cloudinary.uploader.destroy(publicId);
-        }
-      }
-      const imageArr = [];
-      const options = { use_filename: true, unique_filename: false, overwrite: false };
-      for (let file of files[keys]) {
-        const uploaded = await cloudinary.uploader.upload(file.path, options);
-        imageArr.push(uploaded.secure_url);
-      }
-      product.variants[index].images = imageArr;
+  return { groupedVariants, product };
+};
+
+export const unlistVariantService = async (id) => {
+  const variant = await variantModel.findByIdAndUpdate(
+    id,
+    [{ $set: { isUnlisted: { $not: "$isUnlisted" } } }],
+    { new: true }
+  );
+  return variant;
+};
+
+export const editVariantService = async (id, body, imageFiles) => {
+  const variant = await variantModel.findById(id);
+  const { stock, size, color, price, oldPrice, images = [] } = body;
+
+  let imageArr = [...images];
+  const removedImages = variant.images.filter((img) => !images.includes(img));
+  for (let img of removedImages) {
+    const imageName = img.split("/").pop().split(".")[0];
+    await cloudinary.uploader.destroy(imageName);
+  }
+  if (imageFiles) {
+    const options = {
+      use_filename: true,
+      unique_filename: false,
+      overwrite: false,
+    };
+    for (let img of imageFiles) {
+      const result = await cloudinary.uploader.upload(img.path, options);
+      imageArr.push(result.secure_url);
+      fs.unlinkSync(`uploads/${img.filename}`);
     }
   }
-  const updated = await product.save();
-  return updated;
-}
+  const discount = Math.round(((oldPrice - price) / oldPrice) * 100);
+  const updated = {
+    stock,
+    size,
+    color,
+    price,
+    oldPrice,
+    discount,
+    images: imageArr,
+  };
+
+  const updatedVariant = await variantModel.findByIdAndUpdate(id, updated, { new: true });
+  return updatedVariant;
+};
+
+export const addVariantService = async (id, body, files) => {
+  const { stock, size, color, price, oldPrice } = body;
+  let imageArr = [];
+  if (files) {
+    const options = {
+      use_filename: true,
+      unique_filename: false,
+      overwrite: false,
+    };
+    for (let f of files) {
+      const res = await cloudinary.uploader.upload(f.path, options);
+      imageArr.push(res.secure_url);
+      fs.unlinkSync(`uploads/${f.filename}`);
+    }
+  }
+  const discount = Math.round(((oldPrice - price) / oldPrice) * 100);
+  const variant = await variantModel.create({
+    productId: id,
+    stock,
+    size,
+    color,
+    images: imageArr,
+    discount,
+    price,
+    oldPrice,
+  });
+  await productModel.findByIdAndUpdate(id, { $push: { variants: variant._id } });
+  return variant;
+};
+
+export const getSearchSuggestionsService = async (q) => {
+  if (!q) return { products: [], categories: [] };
+
+  const products = await productModel
+    .find(
+      { name: { $regex: q, $options: "i" }, isUnlisted: false },
+      { name: 1, _id: 1, "defaultVariant.images": { $slice: 1 } }
+    )
+    .populate("variants")
+    .limit(5);
+
+  const categories = await categoryModel.aggregate([
+    { $match: { name: { $regex: q, $options: "i" } } },
+    {
+      $graphLookup: {
+        from: "categories",
+        startWith: "$parentId",
+        connectFromField: "parentId",
+        connectToField: "_id",
+        as: "ancestors",
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        ancestors: { _id: 1, name: 1 },
+      },
+    },
+  ]);
+
+  return { products, categories };
+};
