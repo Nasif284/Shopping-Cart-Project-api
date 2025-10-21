@@ -22,7 +22,7 @@ passport.use(
         if (!email) return done(new Error("No email from Google"));
 
         let user = await userModel.findOne({ email });
-        if (user.isBlocked) {
+        if (user?.isBlocked) {
           return done();
         }
         if (!user) {

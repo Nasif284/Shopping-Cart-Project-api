@@ -2,13 +2,16 @@ import AppError from "../middlewares/Error/appError.js";
 import {
   authMeService,
   chatService,
+  editUserService,
+  emailChangeOtpService,
+  emailChangeResendOtpService,
+  emailChangeVerifyService,
   facebookAuthService,
   forgotPasswordServices,
-  getLoginUserDetailsService,
+  getUserChartDataService,
   googleAuthService,
   refreshTokenService,
   registerUserService,
-  removeImgFromCloudinaryService,
   resendOtpService,
   resetPasswordService,
   userImageUploadService,
@@ -18,11 +21,11 @@ import {
 import { STATUS_CODES } from "../utils/statusCodes.js";
 
 export async function registerUser(req, res) {
-  const { name, email, password } = req.body;
+  const { name, email, password, referralCode } = req.body;
   if (!name || !email || !password) {
     throw new AppError("Provide email, name, and password", STATUS_CODES.BAD_REQUEST);
   }
-  const user = await registerUserService({ name, email, password });
+  const user = await registerUserService({ name, email, password , referralCode});
   return res.status(STATUS_CODES.OK).json({
     success: true,
     message: "User registered successfully , please verify your email",
@@ -32,10 +35,11 @@ export async function registerUser(req, res) {
 
 export const verifyEmailController = async (req, res) => {
   const { email, otp } = req.body;
+  const query = req.query;
   if (!email || !otp) {
     throw new AppError("Provide email and otp", STATUS_CODES.BAD_REQUEST);
   }
-  await verifyEmailService({ email, otp });
+  await verifyEmailService({ email, otp, query });
   return res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
@@ -112,8 +116,6 @@ export const facebookAuth = async (req, res) => {
   return res.redirect(process.env.FRONTEND_URL + "/");
 };
 
-
-
 export const logoutController = async (req, res) => {
   const isProduction = process.env.NODE_ENV === "production";
   const cookieOption = {
@@ -130,26 +132,6 @@ export const logoutController = async (req, res) => {
   });
 };
 
-export const userImageController = async (req, res) => {
-  const userId = req.userId;
-  const image = req.file;
-  if (!image) {
-    throw new AppError("Image is required", STATUS_CODES.BAD_REQUEST);
-  }
-  const result = await userImageUploadService(userId, image);
-  return res.status(STATUS_CODES.OK).json(result);
-};
-
-export const removeImgFromCloudinary = async (req, res) => {
-  const imgUrl = req.query.img;
-  if (!imgUrl) {
-    throw new AppError("Image URL is required", STATUS_CODES.BAD_REQUEST);
-  }
-  const del = await removeImgFromCloudinaryService(imgUrl);
-  return res.status(STATUS_CODES.OK).send(del);
-};
-
-
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
   if (!email) {
@@ -164,8 +146,7 @@ export const forgotPassword = async (req, res) => {
 };
 
 export const resetPassword = async (req, res) => {
-  const { email, newPassword, confirmPassword } = req.body;
-  console.log(email, newPassword, confirmPassword);
+  const { email, newPassword, confirmPassword, currentPassword } = req.body;
   if (!email || !newPassword || !confirmPassword) {
     throw new AppError("All fields are required", STATUS_CODES.BAD_REQUEST);
   }
@@ -175,7 +156,7 @@ export const resetPassword = async (req, res) => {
       STATUS_CODES.BAD_REQUEST
     );
   }
-  await resetPasswordService(email, newPassword);
+  await resetPasswordService(email, newPassword, currentPassword);
   return res.status(STATUS_CODES.OK).json({
     message: "password updated successfully",
     success: true,
@@ -184,11 +165,11 @@ export const resetPassword = async (req, res) => {
 };
 
 export const refreshToken = async (req, res) => {
-  const token = req.cookies.refreshToken 
+  const token = req.cookies.refreshToken;
   if (!token) {
     throw new AppError("Please provide token", STATUS_CODES.UNAUTHORIZED);
   }
-  const {newAccessToken,refreshToken} = await refreshTokenService(token);
+  const { newAccessToken, refreshToken } = await refreshTokenService(token);
   const isProduction = process.env.NODE_ENV === "production";
   const cookieOption = {
     httpOnly: true,
@@ -203,18 +184,8 @@ export const refreshToken = async (req, res) => {
     error: false,
     data: {
       accessToken: newAccessToken,
-      refreshToken
+      refreshToken,
     },
-  });
-};
-
-export const getLoginUserDetails = async (req, res) => {
-  const userId = req.userId;
-  const user = await getLoginUserDetailsService(userId);
-  return res.status(STATUS_CODES.OK).json({
-    data: user,
-    success: true,
-    error: false,
   });
 };
 
@@ -225,11 +196,70 @@ export const authMe = async (req, res) => {
 };
 
 export const chatController = async (req, res) => {
-  const userId= req?.userId
-   const reply = await chatService(req.body,userId)
+  const userId = req?.userId;
+  const reply = await chatService(req.body, userId);
   return res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
-    reply
+    reply,
   });
-}
+};
+
+export const userImageController = async (req, res) => {
+  const userId = req.userId;
+  const image = req.file;
+  if (!image) {
+    throw new AppError("Image is required", STATUS_CODES.BAD_REQUEST);
+  }
+  const result = await userImageUploadService(userId, image);
+  return res.status(STATUS_CODES.OK).json(result);
+};
+
+export const editUser = async (req, res) => {
+  const userId = req.userId;
+  const updated = editUserService(userId, req.body);
+  return res.status(200).json({
+    success: true,
+    error: false,
+    updated,
+  });
+};
+
+export const emailChangeOtpController = async (req, res) => {
+  const userId = req.userId;
+  const email = req.body.email;
+  await emailChangeOtpService(userId, email);
+  return res.status(200).json({
+    success: true,
+    error: false,
+    message: "Otp Send to the mail",
+  });
+};
+
+export const emailChangeOtpResend = async (req, res) => {
+  const userId = req.userId;
+  const email = req.body.email;
+  console.log(email)
+  await emailChangeResendOtpService(email, userId);
+  return res.status(200).json({
+    success: true,
+    error: false,
+    message: "Otp Resend to the mail",
+  });
+};
+
+export const emailChangeVerifyController = async (req, res) => {
+  const userId = req.userId;
+  const otp = req.body.otp;
+  await emailChangeVerifyService(userId, otp);
+    return res.status(200).json({
+      success: true,
+      error: false,
+      message: "Email Verified Successfully",
+    });
+};
+
+export const getUserChartData = async (req, res) => {
+  const data = await getUserChartDataService(req.query);
+  return res.status(200).json({ success: true, error: false, data });
+};

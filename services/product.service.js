@@ -1,4 +1,3 @@
-import { STATUS_CODES } from "http";
 import AppError from "../middlewares/Error/appError.js";
 import categoryModel from "../models/category.model.js";
 import productModel from "../models/product.model.js";
@@ -6,6 +5,9 @@ import { v2 as cloudinary } from "cloudinary";
 import variantModel from "../models/variant.schema.js";
 import fs from "fs";
 import mongoose from "mongoose";
+import { STATUS_CODES } from "../utils/statusCodes.js";
+import { applyBestOffer } from "../utils/applyBestOffer.js";
+import Razorpay from "razorpay";
 export const addProductService = async (body, imagesByVariant) => {
   const { name, description, brand, category, subCategory, thirdCategory, variants, isFeatured } =
     body;
@@ -26,10 +28,9 @@ export const addProductService = async (body, imagesByVariant) => {
   const options = {
     folder: "products",
     use_filename: true,
-    unique_filename: false,
+    unique_filename: true,
     overwrite: false,
   };
-  let firstImage = null;
   for (let i = 0; i < variants.length; i++) {
     const v = variants[i];
     let imgUrlArr = [];
@@ -39,9 +40,6 @@ export const addProductService = async (body, imagesByVariant) => {
         fs.unlinkSync(`uploads/${img.filename}`);
         imgUrlArr.push(result.secure_url);
       }
-    }
-    if (imgUrlArr.length > 0 && i == 0) {
-      firstImage = imgUrlArr[0];
     }
     const discount = Math.round(((v.oldPrice - v.price) / v.oldPrice) * 100);
     const newVariant = await variantModel.create({
@@ -58,12 +56,14 @@ export const addProductService = async (body, imagesByVariant) => {
     await productModel.findByIdAndUpdate(newProduct._id, { $push: { variants: newVariant._id } });
     variantDocs.push(newVariant);
   }
-  await productModel.findByIdAndUpdate(newProduct._id, { $set: { thumbnail: firstImage } });
   return { newProduct, variantDocs };
 };
 
 export const getAllProductsService = async (query, page, perPage) => {
-  let filter = { isUnlisted: false };
+  let filter = {};
+  if (!query.admin && query.admin !== "true") {
+    filter.isUnlisted = false;
+  }
   function capitalizeFirstLetter(value) {
     if (!value) return "";
 
@@ -131,6 +131,7 @@ export const getAllProductsService = async (query, page, perPage) => {
     filter.$or = [
       { name: { $regex: query.search, $options: "i" } },
       { description: { $regex: query.search, $options: "i" } },
+      { brand: { $regex: query.search, $options: "i" } },
     ];
 
     if (matchedCategories.length) {
@@ -144,7 +145,7 @@ export const getAllProductsService = async (query, page, perPage) => {
   if (query.isFeatured && query.isFeatured === "true") {
     filter.isFeatured = true;
   }
-  filter.isUnlisted = false;
+
   if (query.related) {
     filter._id = { $ne: new mongoose.Types.ObjectId(query.related) };
   }
@@ -191,19 +192,43 @@ export const getAllProductsService = async (query, page, perPage) => {
     { $unwind: { path: "$thirdCategory", preserveNullAndEmptyArrays: true } },
     {
       $match: {
-        "category.isBlocked": { $ne: true },
-        "subCategory.isBlocked": { $ne: true },
-        "thirdCategory.isBlocked": { $ne: true },
+        "category.isBlocked": false,
+        "subCategory.isBlocked": false,
+        "thirdCategory.isBlocked": false,
       },
     },
+    {
+      $addFields: {
+        totalVariants: { $size: "$variants" },
+        inStockVariants: {
+          $filter: {
+            input: "$variants",
+            as: "variant",
+            cond: { $gt: ["$$variant.stock", 0] },
+          },
+        },
+      },
+    },
+    {
+      $addFields: {
+        variants: {
+          $cond: {
+            if: {
+              $and: [{ $gt: ["$totalVariants", 1] }, { $gt: [{ $size: "$inStockVariants" }, 0] }],
+            },
+            then: "$inStockVariants",
+            else: "$variants",
+          },
+        },
+      },
+    },
+
     {
       $addFields: {
         defaultVariant: {
           $arrayElemAt: [{ $sortArray: { input: "$variants", sortBy: { price: 1 } } }, 0],
         },
-        stock: {
-          $sum: "$variants.stock",
-        },
+        stock: { $sum: "$variants.stock" },
       },
     },
   ];
@@ -211,8 +236,11 @@ export const getAllProductsService = async (query, page, perPage) => {
   if (query.minPrice || query.maxPrice) {
     let priceFilter = {};
     if (query.minPrice) priceFilter.$gte = parseInt(query.minPrice);
-    if (query.maxPrice) priceFilter.$lte = parseInt(query.maxPrice);
-
+    if (query.maxPrice) {
+      if (query.maxPrice != "3000") {
+        priceFilter.$lte = parseInt(query.maxPrice);
+      }
+    }
     pipeline.push({
       $match: { "defaultVariant.price": priceFilter },
     });
@@ -256,6 +284,7 @@ export const getAllProductsService = async (query, page, perPage) => {
   } else {
     pipeline.push({ $sort: { createdAt: -1 } });
   }
+  pipeline.push({ $project: { variants: 0 } });
 
   if (perPage && page) {
     pipeline.push({
@@ -265,24 +294,40 @@ export const getAllProductsService = async (query, page, perPage) => {
       },
     });
     const result = await productModel.aggregate(pipeline);
-    const products = result[0]?.data || [];
+    let products = result[0]?.data || [];
     const totalPosts = result[0]?.totalCount[0]?.count || 0;
     const totalPages = Math.ceil(totalPosts / perPage);
 
     if (page > totalPages && totalPages > 0) {
       throw new AppError("Page not found", STATUS_CODES.BAD_REQUEST);
     }
+    console.log(products);
+    products = await Promise.all(
+      products.map(async (product) => {
+        product.defaultVariant = await applyBestOffer(product.defaultVariant);
+        return product;
+      })
+    );
 
     return { totalPages, products, totalPosts };
   }
-  const products = await productModel.aggregate(pipeline);
+
+  let products = await productModel.aggregate(pipeline);
+
+  products = await Promise.all(
+    products.map(async (product) => {
+      product.defaultVariant = await applyBestOffer(product.defaultVariant);
+      return product;
+    })
+  );
+  console.log(products[0]);
   return { products };
 };
 
 export const updateProductService = async (id, body) => {
   const product = await productModel.findById(id);
-  const { name, description, brand, isFeatured, category, subCategory, thirdCategory, discount } =
-    body;
+  const { name, description, brand, isFeatured, category, subCategory, thirdCategory } = body;
+  console.log(body);
   let catId = await categoryModel.findOne({ name: category });
   let subCatId = await categoryModel.findOne({ name: subCategory });
   let thirdCatId = await categoryModel.findOne({ name: thirdCategory });
@@ -293,8 +338,7 @@ export const updateProductService = async (id, body) => {
   product.categoryId = catId?._id;
   product.subCategoryId = subCatId?._id;
   product.thirdSubCategoryId = thirdCatId?._id;
-  product.discount = discount;
-  product.isFeatured = isFeatured === "Yes";
+  product.isFeatured = isFeatured;
 
   await product.save();
 };
@@ -308,14 +352,22 @@ export const unlistProductService = async (id) => {
   return product;
 };
 
-export const getVariantsService = async (id) => {
-  const variants = await variantModel.find({ productId: id });
-  return variants;
+export const getVariantsService = async (id, query) => {
+  const page = query.page;
+  const perPage = query.perPage;
+  const totalPosts = await variantModel.countDocuments({ productId: id });
+  const variants = await variantModel
+    .find({ productId: id })
+    .sort({ createdAt: -1 })
+    .skip(perPage * (page - 1))
+    .limit(perPage);
+  const totalPages = Math.ceil(totalPosts / perPage);
+  return { variants, totalPages, page, perPage, totalPosts };
 };
 
 export const getProductByIdService = async (id) => {
   let pipeline = [
-    { $match: { _id: new mongoose.Types.ObjectId(id) } },
+    { $match: { _id: new mongoose.Types.ObjectId(id), isUnlisted: false } },
     {
       $lookup: {
         from: "variants",
@@ -325,7 +377,6 @@ export const getProductByIdService = async (id) => {
         pipeline: [{ $match: { isUnlisted: false } }],
       },
     },
-
     {
       $lookup: {
         from: "categories",
@@ -350,36 +401,90 @@ export const getProductByIdService = async (id) => {
         as: "thirdCategory",
       },
     },
-
     { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
     { $unwind: { path: "$subCategory", preserveNullAndEmptyArrays: true } },
     { $unwind: { path: "$thirdCategory", preserveNullAndEmptyArrays: true } },
-
+    {
+      $match: {
+        "category.isBlocked": false,
+        "subCategory.isBlocked": false,
+        "thirdCategory.isBlocked": false,
+      },
+    },
+    {
+      $addFields: {
+        totalVariants: { $size: "$variants" },
+        inStockVariants: {
+          $filter: {
+            input: "$variants",
+            as: "variant",
+            cond: { $gt: ["$$variant.stock", 0] },
+          },
+        },
+      },
+    },
     {
       $addFields: {
         defaultVariant: {
-          $arrayElemAt: [{ $sortArray: { input: "$variants", sortBy: { price: 1 } } }, 0],
+          $arrayElemAt: [
+            {
+              $sortArray: {
+                input: {
+                  $cond: {
+                    if: {
+                      $and: [
+                        { $gt: ["$totalVariants", 1] },
+                        { $gt: [{ $size: "$inStockVariants" }, 0] },
+                      ],
+                    },
+                    then: "$inStockVariants",
+                    else: "$variants",
+                  },
+                },
+                sortBy: { price: 1 },
+              },
+            },
+            0,
+          ],
         },
-        stock: { $sum: "$variants.stock" },
+        stock: {
+          $sum: "$variants.stock",
+        },
       },
     },
     {
       $addFields: {
         variants: {
-          $filter: {
-            input: "$variants",
-            as: "variant",
-            cond: { $ne: ["$$variant._id", "$defaultVariant._id"] },
+          $sortArray: {
+            input: {
+              $filter: {
+                input: "$variants",
+                as: "variant",
+                cond: { $ne: ["$$variant._id", "$defaultVariant._id"] },
+              },
+            },
+            sortBy: { price: 1 },
           },
         },
+        stock: { $sum: "$variants.stock" },
       },
     },
   ];
 
   const products = await productModel.aggregate(pipeline);
+  if (products.length == 0) {
+    throw new AppError("Product Not Found", STATUS_CODES.NOT_FOUND);
+  }
   const product = products[0];
+  console.log(product);
   const groupedVariants = {};
-  [product.defaultVariant, ...product.variants].forEach((variant) => {
+  const variants = await Promise.all(
+    [product.defaultVariant, ...product.variants].map(
+      async (variant) => await applyBestOffer(variant)
+    )
+  );
+  console.log(variants);
+  variants.forEach((variant) => {
     const { color, size, price, stock, _id, images, oldPrice, discount } = variant;
 
     if (!groupedVariants[color]) {
@@ -396,6 +501,7 @@ export const getProductByIdService = async (id) => {
       _id,
       images,
       discount,
+      color,
     });
   });
 
@@ -416,6 +522,7 @@ export const editVariantService = async (id, body, imageFiles) => {
   const { stock, size, color, price, oldPrice, images = [] } = body;
 
   let imageArr = [...images];
+  console.log(imageArr);
   const removedImages = variant.images.filter((img) => !images.includes(img));
   for (let img of removedImages) {
     const imageName = img.split("/").pop().split(".")[0];
@@ -511,3 +618,72 @@ export const getSearchSuggestionsService = async (q) => {
 
   return { products, categories };
 };
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_TEST_KEY_ID,
+  key_secret: process.env.RAZORPAY_TEST_KEY_SECRET,
+});
+
+export const createRazorpayOrderService = async ({ amount, items, failed = false }) => {
+  console.log(failed);
+  if (failed) {
+    for (let item of items) {
+      const product = await productModel
+        .findById(item.product)
+        .populate("categoryId")
+        .populate("subCategoryId")
+        .populate("thirdSubCategoryId");
+      const variant = await variantModel.findById(item.variant);
+
+      if (
+        product.isUnlisted ||
+        variant.isUnlisted ||
+        product.categoryId.isBlocked ||
+        product.subCategoryId.isBlocked ||
+        product.thirdSubCategoryId.isBlocked
+      ) {
+        throw new AppError(`${product.name} is not available now`, STATUS_CODES.BAD_REQUEST);
+      }
+      if (variant.stock <= 0 || variant.stock < item.quantity) {
+        throw new AppError(`${product.name} is out of stock`, STATUS_CODES.BAD_REQUEST);
+      }
+    }
+  } else {
+    for (let item of items) {
+      const product = await productModel
+        .findById(item.product._id)
+        .populate("categoryId")
+        .populate("subCategoryId")
+        .populate("thirdSubCategoryId");
+      const variant = await variantModel.findById(item.variant._id);
+
+      if (
+        product.isUnlisted ||
+        variant.isUnlisted ||
+        product.categoryId.isBlocked ||
+        product.subCategoryId.isBlocked ||
+        product.thirdSubCategoryId.isBlocked
+      ) {
+        throw new AppError(`${item.product.name} is not available now`, STATUS_CODES.BAD_REQUEST);
+      }
+      if (variant.stock <= 0 || variant.stock < item.quantity) {
+        throw new AppError(`${item.product.name} is out of stock`, STATUS_CODES.BAD_REQUEST);
+      }
+    }
+  }
+
+  if (!amount) {
+    throw new AppError("Amount is required", STATUS_CODES.BAD_REQUEST);
+  }
+  const amountInPaise = Math.round(Number(amount) * 100);
+  const options = {
+    amount: amountInPaise,
+    currency: "INR",
+    receipt: `rcpt_${Date.now()}`,
+    payment_capture: 1,
+  };
+  const order = await razorpay.orders.create(options);
+  return order;
+};
+
+

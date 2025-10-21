@@ -1,11 +1,12 @@
 import express from "express";
+import nocache from "nocache";
 import cors from "cors";
 import dotenv from "dotenv";
 import { createStream } from "rotating-file-stream";
 dotenv.config();
 import cookieParser from "cookie-parser";
 import "./utils/googleAuthSetup.js";
-import "./utils/facebookAuthSetup.js"
+import "./utils/facebookAuthSetup.js";
 import morgan from "morgan";
 import helmet from "helmet";
 import connectDb from "./config/connectDb.js";
@@ -18,15 +19,16 @@ import passport from "passport";
 import http from "http";
 import qs from "qs";
 import { SocketInit } from "./config/socketIo.js";
-import multer from "multer";
 const app = express();
-const server = http.createServer(app); 
+const server = http.createServer(app);
+app.use(nocache())
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,
     credentials: true,
   })
 );
+
 SocketInit(server);
 app.set("query parser", (str) => qs.parse(str));
 app.use(express.json());

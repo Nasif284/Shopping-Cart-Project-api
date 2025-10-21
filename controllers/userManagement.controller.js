@@ -2,8 +2,9 @@ import { blockUserService, getUsersService } from "../services/userManagement.se
 import { STATUS_CODES } from "../utils/statusCodes.js";
 
 export const getUsers = async (req, res) => {
-  const users = await getUsersService();
-  res.status(STATUS_CODES.OK).json({ users });
+  const query = req.query;
+  const {allUsers,totalPosts} = await getUsersService(query);
+  res.status(STATUS_CODES.OK).json({ users:allUsers, totalPosts, page:query.page, perPage: query.perPage });
 };
 
 export const blockUserController = async (req, res) => {

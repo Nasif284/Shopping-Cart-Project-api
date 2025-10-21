@@ -62,7 +62,6 @@ export const getAllProductsController = async (req, res) => {
 
 export const updateProductController = async (req, res) => {
   const id = req.params.id;
-  console.log(id);
   const body = req.body;
   const product = await updateProductService(id, body);
   return res.status(STATUS_CODES.OK).json({
@@ -84,11 +83,16 @@ export const unlistProductController = async (req, res) => {
 
 export const getVariantsController = async (req, res) => {
   const id = req.params.id;
-  const variants = await getVariantsService(id);
+  const query = req.query
+  const {variants,page,perPage,totalPages,totalPosts} = await getVariantsService(id,query);
   return res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
     variants,
+    page,
+    perPage,
+    totalPages,
+    totalPosts
   });
 };
 
@@ -148,6 +152,10 @@ export const getSearchSuggestions = async(req, res) => {
     products
    });
 }
+
+
+
+
 
 
 

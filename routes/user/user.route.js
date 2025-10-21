@@ -3,18 +3,14 @@ import {
   authMe,
   chatController,
   facebookAuth,
-  getLoginUserDetails,
   googleAuth,
   loginController,
   logoutController,
   refreshToken,
   registerUser,
-  removeImgFromCloudinary,
   resendOtp,
-  userImageController,
   verifyEmailController,
 } from "../../controllers/user.controller.js";
-import upload from "../../middlewares/multer/multer.js"; 
 import PasswordRouter from "./password.route.js";
 import { getAllCategories } from "../../controllers/category.controller.js";
 import {
@@ -25,10 +21,25 @@ import { validationErrorHandle } from "../../middlewares/validation/validationHa
 import { asyncHandler } from "../../middlewares/Error/asyncHandler.js";
 import userAuth from "../../middlewares/auth/UserAuth.js";
 import passport from "passport";
+import editRouter from "./edit.route.js";
+import addressRouter from "./address.route.js";
+import cartRouter from "./cart.route.js";
+import orderRouter from "./order.route.js";
+import { getReviewsOController } from "../../controllers/order.controller.js";
+import wishlistRouter from "./wishlist.route.js";
+import couponRouter from "./coupon.route.js";
+import walletRouter from "./wallet.route.js";
 
 const userRouter = Router();
 
 userRouter.use("/password", PasswordRouter);
+userRouter.use("/edit", editRouter)
+userRouter.use("/address", addressRouter)
+userRouter.use("/cart", cartRouter)
+userRouter.use("/orders", orderRouter)
+userRouter.use("/wishlist", wishlistRouter)
+userRouter.use("/coupon", couponRouter)
+userRouter.use("/wallet",walletRouter)
 
 userRouter.post("/register", signupValidation, validationErrorHandle, asyncHandler(registerUser));
 userRouter.post("/verify", asyncHandler(verifyEmailController));
@@ -45,7 +56,7 @@ userRouter.get(
 userRouter.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: `${process.env.FRONTEND_URL}/login?error=server_error&message=${encodeURIComponent("Authentication failed, User Is Blocked")}`,
+    failureRedirect: `${process.env.FRONTEND_URL}/login?error=server_error&message=${encodeURIComponent("Authentication failed")}`,
     session: false,
   }),
   googleAuth
@@ -68,12 +79,9 @@ userRouter.get(
 );
 
 userRouter.get("/logout", userAuth, asyncHandler(logoutController));
-userRouter.put("/imageUpload", userAuth, upload.single("image"), asyncHandler(userImageController));
-userRouter.delete("/deleteImage", userAuth, asyncHandler(removeImgFromCloudinary));
 userRouter.get("/refresh", asyncHandler(refreshToken));
-userRouter.get("/userDetails", userAuth, asyncHandler(getLoginUserDetails));
 userRouter.get("/categories", userAuth, asyncHandler(getAllCategories));
 userRouter.get("/auth", userAuth, asyncHandler(authMe));
-userRouter.post("/chat",asyncHandler(chatController) )
-
+userRouter.post("/chat", asyncHandler(chatController))
+userRouter.get("/reviews/:id", userAuth, asyncHandler(getReviewsOController));
 export default userRouter;

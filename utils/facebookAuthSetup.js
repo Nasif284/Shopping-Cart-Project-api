@@ -2,11 +2,6 @@ import { Strategy as FacebookStrategy } from "passport-facebook";
 import userModel from "../models/user.model.js"
 import passport from "passport";
 
-function normalizeFacebookPhoto(photoUrl) {
-  if (!photoUrl) return null;
-  return photoUrl.replace("type=normal", "type=large");
-}
-
 passport.use(
   new FacebookStrategy(
     {
@@ -27,16 +22,11 @@ passport.use(
             email,
             isVerified: true,
             facebookId: profile.id,
-            image: normalizeFacebookPhoto(profile.photos?.[0]?.value) || null,
           });
           await user.save();
         } else {
           const updated = {};
           if (!user.facebookId) updated.facebookId = profile.id;
-
-          const newPhoto = normalizeFacebookPhoto(profile.photos?.[0]?.value);
-          if (newPhoto && user.image !== newPhoto) updated.image = newPhoto;
-
           if (Object.keys(updated).length) {
             await userModel.findByIdAndUpdate(user._id, updated, { new: true });
           }

@@ -17,9 +17,16 @@ export const createCategoryService = async (image, { name, parent, level }) => {
     parentCatName = parent.toLowerCase();
   }
   if (level == "first") {
-    isExist = await categoryModel.findOne({ name, level: "first" });
+    isExist = await categoryModel.findOne({
+      name: { $regex: `^${name}$`, $options: "i" },
+      level: "first",
+    });
   } else {
-    isExist = await categoryModel.findOne({ name, level, parentCatName });
+    isExist = await categoryModel.findOne({
+      name: { $regex: `^${name}$`, $options: "i" },
+      level,
+      parentCatName,
+    });
   }
   if (isExist) {
     throw new AppError("Category already exist", STATUS_CODES.CONFLICT);
@@ -34,7 +41,6 @@ export const createCategoryService = async (image, { name, parent, level }) => {
     await cloudinary.uploader.upload(image.path, options, function (error, result) {
       imageUrl = result.secure_url;
       fs.unlinkSync(`uploads/${image.filename}`);
-      console.log(image.filename);
     });
   }
 
@@ -51,8 +57,15 @@ export const createCategoryService = async (image, { name, parent, level }) => {
   return category;
 };
 
-export const getCategoriesService = async () => {
-  const categories = await categoryModel.find();
+export const getCategoriesService = async (query) => {
+  const filter = {};
+  if (query.user == "true") {
+    filter.isBlocked = false
+  }
+  if (query.search) {
+    filter.name = { $regex: query.search, $options:"i" };
+  }
+  const categories = await categoryModel.find(filter);
   const categoryMap = {};
   categories.forEach((cat) => {
     categoryMap[cat._id] = { ...cat._doc, children: [] };
@@ -65,7 +78,7 @@ export const getCategoriesService = async () => {
       rootCategories.push(categoryMap[cat._id]);
     }
   });
-  const rootTree = rootCategories.filter((cat) => cat.isBlocked == false);
+const rootTree = rootCategories.filter((cat)=> !cat.isBlocked)
   return { categoryMap, rootTree };
 };
 
@@ -79,6 +92,26 @@ export const updateCategoryService = async (id, image, { name, parent }) => {
   const category = await categoryModel.findById(id);
 
   let imageUrl = null;
+  let isExist;
+  if (category.level == "first") {
+    isExist = await categoryModel.find({
+      name: { $regex: `^${name}$`, $options: "i" },
+      level: "first",
+    });
+  } else if (category.level == "second") {
+    isExist = await categoryModel.find({
+      name: { $regex: `^${name}$`, $options: "i" },
+      level: "second",
+    });
+  } else if (category.level == "third") {
+    isExist = await categoryModel.find({
+      name: { $regex: `^${name}$`, $options: "i" },
+      level: "third",
+    });
+  }
+  if (isExist.length > 0 && name != category.name ) {
+    throw new AppError("Category already exist", STATUS_CODES.CONFLICT);
+  }
   if (image) {
     const catImage = category.image;
     if (catImage) {
@@ -103,25 +136,29 @@ export const updateCategoryService = async (id, image, { name, parent }) => {
   }
   const updatedData = {
     name,
-    parentId: parent && category.level !="first" ? parentCat._id : null,
+    parentId: parent && category.level != "first" ? parentCat._id : null,
     parentCatName,
   };
   if (imageUrl) {
     updatedData.image = imageUrl;
   }
- await categoryModel.updateMany(
-   { parentCatName: category.name.toLowerCase() },
-   { parentCatName: name.toLowerCase() }
- );
+  await categoryModel.updateMany(
+    { parentCatName: category.name.toLowerCase() },
+    { parentCatName: name.toLowerCase() }
+  );
   const updated = await categoryModel.findByIdAndUpdate(id, updatedData, { new: true });
   return updated;
 };
 
-export const getCatsByLevelService = async (level, page, perPage) => {
+export const getCatsByLevelService = async (level, page, perPage, search) => {
+  let filter = { level: level };
+  if (search) {
+    filter.name={$regex:search, $options:"i"}
+  }
   if ((perPage, page)) {
-    const totalPosts = await categoryModel.countDocuments({ level: level });
+    const totalPosts = await categoryModel.countDocuments({ level: level});
     const categories = await categoryModel
-      .find({ level: level })
+      .find(filter)
       .sort({ createdAt: -1 })
       .skip((page - 1) * perPage)
       .limit(perPage);
@@ -143,3 +180,6 @@ export const blockCategoryService = async (id) => {
   }
   return category;
 };
+
+
+

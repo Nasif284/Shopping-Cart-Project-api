@@ -12,10 +12,10 @@ import adminAuth from "../../middlewares/auth/adminAuth.js";
 
 const categoryRouter = Router();
 
-categoryRouter.post("/", upload.single("image"), asyncHandler(createCategory));
+categoryRouter.post("/",adminAuth, upload.single("image"), asyncHandler(createCategory));
 categoryRouter.get("/", asyncHandler(getAllCategories));
 categoryRouter.get("/:level", asyncHandler(getCategoriesByLevel));
-categoryRouter.patch("/edit/:id", upload.single("image"), asyncHandler(updateCategory));
-categoryRouter.patch("/block/:id", adminAuth, asyncHandler(blockCategory));
+categoryRouter.patch("/edit/:id",adminAuth, upload.single("image"), asyncHandler(updateCategory));
+categoryRouter.patch("/block/:id",adminAuth, adminAuth, asyncHandler(blockCategory));
 
 export default categoryRouter;

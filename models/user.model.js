@@ -3,7 +3,7 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "name is required"],
+      required: [true, "name is required  "],
     },
     email: {
       type: String,
@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
+      default:"",
     },
     image: {
       type: String,
@@ -42,10 +43,34 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    facebookId: {
+      type: String,
+      default: "",
+    },
+    referralCode: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
   }
 );
+userSchema.pre("save", async function (next) {
+  if (this.isNew) {
+    const base = this.name.slice(0, 3).toUpperCase();
+    let exist = true;
+    let code = "";
+    while (exist) {
+      const random = Math.floor(1000 + Math.random() * 9000);
+      code = `${base}${random}`;
+      exist = await userModel.exists({ referralCode: code });
+    }
+    this.referralCode = code;
+  }
+  next();
+});
 const userModel = mongoose.model("User", userSchema);
 export default userModel;
+
+
