@@ -6,7 +6,7 @@ export const applyBestOffer = async(variant) => {
     const offers = await offerModel.find({
       isActive: true,
       $or: [
-        { scope: "global" },
+        { scope: "global", startDate: { $lte: new Date() }, expiryDate: { $gte: new Date() } },
         { scope: "product", product: product._id },
         {
           scope: "category",

@@ -149,6 +149,7 @@ export const getAllProductsService = async (query, page, perPage) => {
   if (query.related) {
     filter._id = { $ne: new mongoose.Types.ObjectId(query.related) };
   }
+ 
 
   let pipeline = [
     {
@@ -233,6 +234,7 @@ export const getAllProductsService = async (query, page, perPage) => {
     },
   ];
 
+
   if (query.minPrice || query.maxPrice) {
     let priceFilter = {};
     if (query.minPrice) priceFilter.$gte = parseInt(query.minPrice);
@@ -285,7 +287,9 @@ export const getAllProductsService = async (query, page, perPage) => {
     pipeline.push({ $sort: { createdAt: -1 } });
   }
   pipeline.push({ $project: { variants: 0 } });
-
+  if (query.popular) {
+    pipeline.push({ $sort: { rating: -1 } }, {$limit:12});
+  }
   if (perPage && page) {
     pipeline.push({
       $facet: {
@@ -301,7 +305,6 @@ export const getAllProductsService = async (query, page, perPage) => {
     if (page > totalPages && totalPages > 0) {
       throw new AppError("Page not found", STATUS_CODES.BAD_REQUEST);
     }
-    console.log(products);
     products = await Promise.all(
       products.map(async (product) => {
         product.defaultVariant = await applyBestOffer(product.defaultVariant);
@@ -311,16 +314,13 @@ export const getAllProductsService = async (query, page, perPage) => {
 
     return { totalPages, products, totalPosts };
   }
-
   let products = await productModel.aggregate(pipeline);
-
   products = await Promise.all(
     products.map(async (product) => {
       product.defaultVariant = await applyBestOffer(product.defaultVariant);
       return product;
     })
   );
-  console.log(products[0]);
   return { products };
 };
 
@@ -625,7 +625,6 @@ const razorpay = new Razorpay({
 });
 
 export const createRazorpayOrderService = async ({ amount, items, failed = false }) => {
-  console.log(failed);
   if (failed) {
     for (let item of items) {
       const product = await productModel
@@ -648,7 +647,7 @@ export const createRazorpayOrderService = async ({ amount, items, failed = false
         throw new AppError(`${product.name} is out of stock`, STATUS_CODES.BAD_REQUEST);
       }
     }
-  } else {
+  } else if(items) {
     for (let item of items) {
       const product = await productModel
         .findById(item.product._id)
@@ -685,5 +684,4 @@ export const createRazorpayOrderService = async ({ amount, items, failed = false
   const order = await razorpay.orders.create(options);
   return order;
 };
-
 

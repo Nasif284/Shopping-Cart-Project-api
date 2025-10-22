@@ -49,15 +49,12 @@ export const getCouponForUserService = async (purchaseValue, userId) => {
     minPurchaseAmount: { $lte: purchaseValue },
     startDate: { $lte: new Date() },
     expiryDate: { $gte: new Date() },
-      isActive: true,
-      $expr:{$lte:["$usedCount","$usageLimit"]}
-    
-    };
-    
-
+    isActive: true,
+    $expr: { $lt: ["$usedCount", "$usageLimit"] },
+  };
   const scopeFilter = hasOrders
     ? {
-        $or: [{ scope: "Global" }, { scope: "User",allowedUsers: { $in: [objectUserId] } }],
+        $or: [{ scope: "Global" }, { scope: "User", allowedUsers: { $in: [objectUserId] } }],
       }
     : {
         $or: [
@@ -76,10 +73,10 @@ export const getCouponForUserService = async (purchaseValue, userId) => {
 };
 
 export const applyCouponService = async ({ items, code, purchaseValue, userId }) => {
-    const coupon = await couponModel.findOne({ code });
-    if (!coupon) {
-        throw new AppError("No Coupon Found in This Code", STATUS_CODES.NOT_FOUND);
-    }
+  const coupon = await couponModel.findOne({ code });
+  if (!coupon) {
+    throw new AppError("No Coupon Found in This Code", STATUS_CODES.NOT_FOUND);
+  }
   if (coupon.expiryDate < new Date()) {
     throw new AppError("Coupon Expired", STATUS_CODES.BAD_REQUEST);
   }
@@ -91,38 +88,42 @@ export const applyCouponService = async ({ items, code, purchaseValue, userId })
       `Coupon is only applicable for purchases more than ${coupon.minPurchaseAmount}`,
       STATUS_CODES.BAD_REQUEST
     );
-    }
-  let couponDeduction = 0
-  let fullQuantity = 0
+  }
+  let couponDeduction = 0;
+  let fullQuantity = 0;
   items.forEach((item) => {
-    fullQuantity += item.quantity
-  })
+    fullQuantity += item.quantity;
+  });
   const itemsWithCoupon = items.map((item) => {
     if (coupon.discountType == "Flat") {
-      item.variant.price = item.variant.price - coupon.discountValue / fullQuantity
-      couponDeduction = coupon.discountValue
+      item.variant.price = item.variant.price - coupon.discountValue / fullQuantity;
+      couponDeduction = coupon.discountValue;
     } else if (coupon.discountType == "Percentage") {
-       couponDeduction += Math.round(item.variant.price * (coupon.discountValue / 100));
+      couponDeduction += Math.round(item.variant.price * (coupon.discountValue / 100));
       item.variant.price = Math.round(
         item.variant.price - item.variant.price * (coupon.discountValue / 100)
       );
     }
     return item;
   });
-    coupon.usedCount = coupon.usedCount + 1;
-    coupon.userUsage.push(userId)
-    await coupon.save()
+  coupon.usedCount = coupon.usedCount + 1;
+  coupon.userUsage.push(userId);
+  await coupon.save();
   return { items: itemsWithCoupon, coupon, couponDeduction };
 };
 
-export const removeAppliedCouponService = async (items) => {
-    const orderItems = await Promise.all(
-      items.map(async (item) => {
-        const baseVariant = await variantModel.findById(item.variant._id);
-        const variant = await applyBestOffer(baseVariant);
-        item.variant = variant;
-        return item;
-      })
-    ); 
-    return orderItems
-}
+export const removeAppliedCouponService = async ({ items, code }) => {
+  const coupon = await couponModel.findOne({ code });
+  const orderItems = await Promise.all(
+    items.map(async (item) => {
+      const baseVariant = await variantModel.findById(item.variant._id);
+      const variant = await applyBestOffer(baseVariant);
+      item.variant = variant;
+      return item;
+    })
+  );
+  coupon.usedCount = coupon.usedCount - 1;
+  coupon.userUsage.pop();
+  await coupon.save();
+  return orderItems;
+};

@@ -23,12 +23,14 @@ export const addOfferProductService = async (body) => {
 };
 
 export const addGlobalOfferService = async (body) => {
-  const { discountValue,title } = body;
+  const { discountValue,title, startDate, expiryDate } = body;
    const offer = await offerModel.create(
      {
        scope: "global",
        title,
-       discountValue
+       discountValue,
+       startDate,
+       expiryDate,
      }
    );
   return offer;
@@ -56,7 +58,7 @@ export const editCategoryOfferService = async (id, body) => {
   return offer
 }
 
-export const editGlobalOfferService = async (id,body) => {
-  const offer = await offerModel.findByIdAndUpdate(id, { $set: { title: body.title, discountValue: body.discountValue } }, { new: true })
+export const editGlobalOfferService = async (id, body) => {
+  const offer = await offerModel.findByIdAndUpdate(id, { $set: { ...body } }, { new: true })
   return offer;
 }

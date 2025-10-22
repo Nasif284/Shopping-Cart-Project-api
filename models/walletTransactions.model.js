@@ -21,8 +21,7 @@ const walletTransactionSchema = new mongoose.Schema(
       default:"",
     },
     relatedOrderId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Order",
+      type: String,
       default: null,
     },
     transactionId: {

@@ -322,7 +322,7 @@ export const updateOrderStatusService = async (id, status) => {
       amount: item.price * item.quantity,
       description: "Refund for order cancellation",
       type: "CREDIT",
-      relatedOrderId: order._id,
+      relatedOrderId: order.orderId,
       balanceAfter: wallet.balance,
     });
     order.payment.status = "Refunded";
@@ -351,7 +351,7 @@ export const cancelOrderByUserService = async (id, reason) => {
       amount: item.price * item.quantity,
       description: "Refund for order cancellation",
       type: "CREDIT",
-      relatedOrderId: order._id,
+      relatedOrderId: order.orderId,
       balanceAfter: wallet.balance,
     });
     order.payment.status = "Refunded";
@@ -385,7 +385,7 @@ export const approveReturnRequest = async (id) => {
       amount: item.price * item.quantity,
       description: "Refund for order return",
       type: "CREDIT",
-      relatedOrderId: order._id,
+      relatedOrderId: order.orderId,
       balanceAfter: wallet.balance,
     });
     order.payment.status = "Refunded";

@@ -73,7 +73,7 @@ export const applyCouponController = async (req, res) => {
 };
 
 export const removeAppliedCouponController = async (req, res) => {
-  const items = await removeAppliedCouponService(req.body.items);
+  const items = await removeAppliedCouponService(req.body);
   res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
