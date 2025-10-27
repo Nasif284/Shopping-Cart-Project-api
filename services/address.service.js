@@ -5,13 +5,12 @@ export const addAddressService = async (body, userId) => {
     ...body,
     userId,
   });
-
   return newAddress;
 };
 
 export const getAddressService = async (userId) => {
   const addresses = await addressModel.find({ userId }).sort({ createdAt: -1 });
-  
+
   return addresses;
 };
 
