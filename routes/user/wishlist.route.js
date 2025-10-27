@@ -1,5 +1,5 @@
 import { Router } from "express";
-import userAuth from "../../middlewares/auth/UserAuth.js";
+import userAuth from "../../middlewares/auth/userAuth.js";
 import { asyncHandler } from "../../middlewares/Error/asyncHandler.js";
 import {
   addToWishlistController,

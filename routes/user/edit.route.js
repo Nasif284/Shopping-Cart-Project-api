@@ -7,7 +7,7 @@ import {
   emailChangeVerifyController,
   userImageController,
 } from "../../controllers/user.controller.js";
-import userAuth from "../../middlewares/auth/UserAuth.js";
+import userAuth from "../../middlewares/auth/userAuth.js";
 import upload from "../../middlewares/multer/multer.js";
 
 const editRouter = Router();

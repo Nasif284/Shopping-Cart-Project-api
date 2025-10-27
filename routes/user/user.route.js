@@ -19,7 +19,7 @@ import {
 } from "../../middlewares/validation/validationSchamas.js";
 import { validationErrorHandle } from "../../middlewares/validation/validationHandle.js";
 import { asyncHandler } from "../../middlewares/Error/asyncHandler.js";
-import userAuth from "../../middlewares/auth/UserAuth.js";
+import userAuth from "../../middlewares/auth/userAuth.js";
 import passport from "passport";
 import editRouter from "./edit.route.js";
 import addressRouter from "./address.route.js";
