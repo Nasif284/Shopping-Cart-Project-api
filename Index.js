@@ -21,7 +21,7 @@ import qs from "qs";
 import { SocketInit } from "./config/socketIo.js";
 const app = express();
 const server = http.createServer(app);
-app.use(nocache())
+app.use(nocache());
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,

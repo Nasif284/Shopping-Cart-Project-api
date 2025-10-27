@@ -83,8 +83,8 @@ export const unlistProductController = async (req, res) => {
 
 export const getVariantsController = async (req, res) => {
   const id = req.params.id;
-  const query = req.query
-  const {variants,page,perPage,totalPages,totalPosts} = await getVariantsService(id,query);
+  const query = req.query;
+  const { variants, page, perPage, totalPages, totalPosts } = await getVariantsService(id, query);
   return res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
@@ -92,7 +92,7 @@ export const getVariantsController = async (req, res) => {
     page,
     perPage,
     totalPages,
-    totalPosts
+    totalPosts,
   });
 };
 
@@ -133,31 +133,22 @@ export const editVariantController = async (req, res) => {
 
 export const addVariantController = async (req, res) => {
   const id = req.params.id;
-  const variant = await addVariantService(id,req.body,req.files);
-   return res.status(STATUS_CODES.OK).json({
-     success: true,
-     error: false,
-     message: "Variant Added Successfully",
-     variant,
-   });
+  const variant = await addVariantService(id, req.body, req.files);
+  return res.status(STATUS_CODES.OK).json({
+    success: true,
+    error: false,
+    message: "Variant Added Successfully",
+    variant,
+  });
 };
 
-export const getSearchSuggestions = async(req, res) => {
-  const { q } = req.query
-  const { categories, products } = await getSearchSuggestionsService(q)
-   return res.status(STATUS_CODES.OK).json({
-     success: true,
-     error: false,
-     categories,
-    products
-   });
-}
-
-
-
-
-
-
-
-
-
+export const getSearchSuggestions = async (req, res) => {
+  const { q } = req.query;
+  const { categories, products } = await getSearchSuggestionsService(q);
+  return res.status(STATUS_CODES.OK).json({
+    success: true,
+    error: false,
+    categories,
+    products,
+  });
+};

@@ -62,13 +62,13 @@ export const getCouponForUserController = async (req, res) => {
 };
 
 export const applyCouponController = async (req, res) => {
-  const { coupon, items, couponDeduction } = await applyCouponService(req.body,req.userId);
+  const { coupon, items, couponDeduction } = await applyCouponService(req.body, req.userId);
   res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
     coupon,
     items,
-    couponDeduction
+    couponDeduction,
   });
 };
 

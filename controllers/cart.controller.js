@@ -56,6 +56,6 @@ export const productValidation = async (req, res) => {
   res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
-    status
+    status,
   });
 };

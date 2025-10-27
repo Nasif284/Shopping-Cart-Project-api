@@ -33,13 +33,13 @@ import walletRouter from "./wallet.route.js";
 const userRouter = Router();
 
 userRouter.use("/password", PasswordRouter);
-userRouter.use("/edit", editRouter)
-userRouter.use("/address", addressRouter)
-userRouter.use("/cart", cartRouter)
-userRouter.use("/orders", orderRouter)
-userRouter.use("/wishlist", wishlistRouter)
-userRouter.use("/coupon", couponRouter)
-userRouter.use("/wallet",walletRouter)
+userRouter.use("/edit", editRouter);
+userRouter.use("/address", addressRouter);
+userRouter.use("/cart", cartRouter);
+userRouter.use("/orders", orderRouter);
+userRouter.use("/wishlist", wishlistRouter);
+userRouter.use("/coupon", couponRouter);
+userRouter.use("/wallet", walletRouter);
 
 userRouter.post("/register", signupValidation, validationErrorHandle, asyncHandler(registerUser));
 userRouter.post("/verify", asyncHandler(verifyEmailController));
@@ -82,6 +82,6 @@ userRouter.get("/logout", userAuth, asyncHandler(logoutController));
 userRouter.get("/refresh", asyncHandler(refreshToken));
 userRouter.get("/categories", userAuth, asyncHandler(getAllCategories));
 userRouter.get("/auth", userAuth, asyncHandler(authMe));
-userRouter.post("/chat", asyncHandler(chatController))
+userRouter.post("/chat", asyncHandler(chatController));
 userRouter.get("/reviews/:id", userAuth, asyncHandler(getReviewsOController));
 export default userRouter;

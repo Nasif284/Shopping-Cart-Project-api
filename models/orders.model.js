@@ -166,13 +166,13 @@ orderSchema.pre("save", async function (next) {
       if (item.status == "Failed") {
         return;
       }
-        const lastHistory = item.statusHistory[item.statusHistory.length - 1];
-        if (!lastHistory || lastHistory.status !== item.status) {
-          item.statusHistory.push({
-            status: item.status,
-            date: new Date(),
-          });
-        }
+      const lastHistory = item.statusHistory[item.statusHistory.length - 1];
+      if (!lastHistory || lastHistory.status !== item.status) {
+        item.statusHistory.push({
+          status: item.status,
+          date: new Date(),
+        });
+      }
     });
     const statuses = this.items.map((i) => i.status);
     if (statuses.every((s) => s === "Failed")) {

@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { STATUS_CODES } from "../../utils/statusCodes.js";
 import userModel from "../../models/user.model.js";
 
-const userAuth = async(req, res, next) => {
+const userAuth = async (req, res, next) => {
   try {
     const token = req.cookies?.accessToken;
     if (!token) {
@@ -12,21 +12,21 @@ const userAuth = async(req, res, next) => {
       });
     }
     const decoded = jwt.verify(token, process.env.JWT_KEY);
-    const user = await userModel.findById(decoded.id)
+    const user = await userModel.findById(decoded.id);
     if (user.isBlocked) {
-        const isProduction = process.env.NODE_ENV === "production";
-        const cookieOption = {
-          httpOnly: true,
-          secure: isProduction,
-          sameSite: isProduction ? "none" : "lax",
-        };
-        res.clearCookie("accessToken", cookieOption);
-        res.clearCookie("refreshToken", cookieOption);
-        return res.status(STATUS_CODES.FORBIDDEN).json({
-          success: true,
-          error: false,
-          message: "User blocked By admin",
-        });
+      const isProduction = process.env.NODE_ENV === "production";
+      const cookieOption = {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax",
+      };
+      res.clearCookie("accessToken", cookieOption);
+      res.clearCookie("refreshToken", cookieOption);
+      return res.status(STATUS_CODES.FORBIDDEN).json({
+        success: true,
+        error: false,
+        message: "User blocked By admin",
+      });
     }
     req.userId = decoded.id;
     req.role = decoded.role;

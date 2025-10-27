@@ -23,8 +23,8 @@ export const createCategory = async (req, res) => {
 };
 
 export const getAllCategories = async (req, res) => {
-  const query = req.query
-  let { categoryMap, rootTree:rootCategories } = await getCategoriesService(query);
+  const query = req.query;
+  let { categoryMap, rootTree: rootCategories } = await getCategoriesService(query);
   return res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
@@ -35,7 +35,7 @@ export const getAllCategories = async (req, res) => {
 
 export const updateCategory = async (req, res) => {
   const image = req.file;
-  
+
   const updated = await updateCategoryService(req.params.id, image, req.body);
   if (!updated) {
     throw new AppError("Category could not be updated", STATUS_CODES.INTERNAL_SERVER_ERROR);
@@ -48,13 +48,18 @@ export const updateCategory = async (req, res) => {
   });
 };
 
-export const getCategoriesByLevel = async(req,res) => {
+export const getCategoriesByLevel = async (req, res) => {
   const level = req.params.level;
-  const perPage = req?.query?.perPage
-  const page = req?.query?.page
+  const perPage = req?.query?.perPage;
+  const page = req?.query?.page;
   const search = req?.query?.search;
-  if (perPage, page) {
-    const { categories, totalPosts, totalPages,} = await getCatsByLevelService(level, page, perPage,search);
+  if ((perPage, page)) {
+    const { categories, totalPosts, totalPages } = await getCatsByLevelService(
+      level,
+      page,
+      perPage,
+      search
+    );
     return res.status(STATUS_CODES.OK).json({
       success: true,
       error: false,
@@ -66,14 +71,13 @@ export const getCategoriesByLevel = async(req,res) => {
     });
   } else {
     const categories = await getCatsByLevelService(level, page, perPage);
-     return res.status(STATUS_CODES.OK).json({
-       success: true,
-       error: false,
-       categories,
-     });
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      error: false,
+      categories,
+    });
   }
-}
-
+};
 
 export const blockCategory = async (req, res) => {
   const id = req.params.id;
@@ -87,6 +91,3 @@ export const blockCategory = async (req, res) => {
       : "Category Unblocked Successfully",
   });
 };
-
-
-

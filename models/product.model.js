@@ -15,7 +15,6 @@ const productSchema = new mongoose.Schema(
     variants: [{ type: mongoose.Schema.Types.ObjectId, ref: "Variant" }],
     isUnlisted: { type: Boolean, default: false },
     reviewCount: { type: Number, default: "" },
-  
   },
   { timestamps: true }
 );

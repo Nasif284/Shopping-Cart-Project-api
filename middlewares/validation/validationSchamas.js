@@ -85,8 +85,6 @@ export const resetPassValidation = [
     }),
 ];
 
-
-
 export const productValidation = [
   body("name")
     .isString()
@@ -155,7 +153,6 @@ export const productValidation = [
     .withMessage("Stock must be a non-negative integer.")
     .toInt(),
 ];
-
 
 export const editProductValidation = [
   body("name")

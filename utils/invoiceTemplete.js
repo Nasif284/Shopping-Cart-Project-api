@@ -324,8 +324,7 @@ export const invoiceTemplateGenerate = (order, item, discount) => {
                       day: "numeric",
                     }
                   )}<br/>
-                  <strong>Payment Method:</strong> ${order.payment.method}
-                  <span class="payment-badge ${order.payment.status.toLowerCase()}">${order.payment.status}</span><br/>
+                  <strong>Payment Method:</strong> ${order.payment.method} <br/>
                   ${order.payment.transactionId ? `<strong>Transaction ID:</strong> ${order.payment.transactionId}` : ""}
                 </p>
               </div>

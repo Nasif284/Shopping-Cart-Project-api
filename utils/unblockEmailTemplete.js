@@ -77,4 +77,4 @@ const accountUnblockedMailTemplate = (name, supportEmail = "support@shoppingcart
   </html>
   `;
 };
-export default accountUnblockedMailTemplate
+export default accountUnblockedMailTemplate;

@@ -9,8 +9,7 @@ import reviewModel from "../models/reveiw.model.js";
 import wishlistModal from "../models/wishlist.model.js";
 import walletModel from "../models/wallet.model.js";
 import walletTransactionsModel from "../models/walletTransactions.model.js";
-import { invoiceTemplateGenerate } from "../utils/invoiceTemplete.js";
-import puppeteer from "puppeteer";
+import PDFDocument from "pdfkit";
 
 export const placeOrderService = async (userId, body) => {
   const session = await mongoose.startSession();
@@ -137,21 +136,176 @@ export const downloadInvoiceService = async (id, res) => {
       shippingAddress: 1,
       payment: 1,
       createdAt: 1,
+      prices: 1,
     }
   );
+
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Order not found" });
+  }
 
   const item = order.items[0];
   const discount = item.oldPrice * item.quantity - item.price * item.quantity;
 
-  const html = invoiceTemplateGenerate(order, item, discount);
-  const browser = await puppeteer.launch({ headless: true });
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: "networkidle0" });
-  const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
-  await browser.close();
+  const doc = new PDFDocument({
+    margin: 50,
+    size: "A4",
+  });
+
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", `attachment; filename=invoice-${order.orderId}.pdf`);
-  res.send(pdfBuffer);
+
+  doc.pipe(res);
+
+  const formatCurrency = (amount) => {
+    return `Rs.${Number(amount || 0)
+      .toFixed(2)
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  doc.fontSize(24).font("Helvetica-Bold").fillColor("#000000").text("INVOICE", 50, 50);
+
+  doc
+    .fontSize(10)
+    .font("Helvetica")
+    .fillColor("#666666")
+    .text("Shopping cart", 50, 80)
+    .text("shoppingCart@gmail.com", 50, 119);
+
+  doc
+    .fontSize(10)
+    .font("Helvetica-Bold")
+    .fillColor("#000000")
+    .text(`Invoice #${order.orderId}`, 400, 50, { align: "right" });
+
+  doc
+    .fontSize(9)
+    .font("Helvetica")
+    .fillColor("#666666")
+    .text(`Date: ${formatDate(order.createdAt)}`, 400, 70, { align: "right" })
+    .text(`Payment: ${order.payment.method}`, 400, 85, { align: "right" });
+
+  doc.strokeColor("#000000").lineWidth(1).moveTo(50, 150).lineTo(545, 150).stroke();
+
+  doc.fontSize(10).font("Helvetica-Bold").fillColor("#000000").text("BILL TO:", 50, 170);
+
+  doc
+    .fontSize(10)
+    .font("Helvetica")
+    .fillColor("#333333")
+    .text(order.shippingAddress.name, 50, 190)
+    .text(order.shippingAddress.address_line, 50, 205, { width: 250 })
+    .text(`${order.shippingAddress.locality}, ${order.shippingAddress.city}`, 50, 220)
+    .text(`${order.shippingAddress.state} - ${order.shippingAddress.pin_code}`, 50, 235)
+    .text(`Phone: ${order.shippingAddress.mobile}`, 50, 250);
+
+  const tableTop = 300;
+  doc.strokeColor("#000000").lineWidth(1).moveTo(50, tableTop).lineTo(545, tableTop).stroke();
+
+  doc
+    .fontSize(9)
+    .font("Helvetica-Bold")
+    .fillColor("#000000")
+    .text("DESCRIPTION", 50, tableTop + 10)
+    .text("QTY", 320, tableTop + 10, { width: 50, align: "right" })
+    .text("UNIT PRICE", 380, tableTop + 10, { width: 70, align: "right" })
+    .text("AMOUNT", 460, tableTop + 10, { width: 85, align: "right" });
+
+  doc
+    .strokeColor("#000000")
+    .lineWidth(1)
+    .moveTo(50, tableTop + 30)
+    .lineTo(545, tableTop + 30)
+    .stroke();
+
+  const itemY = tableTop + 40;
+  doc
+    .fontSize(10)
+    .font("Helvetica")
+    .fillColor("#333333")
+    .text(item.name, 50, itemY, { width: 250 });
+
+  if (item.size || item.color) {
+    const variant = [item.size, item.color].filter(Boolean).join(", ");
+    doc
+      .fontSize(8)
+      .fillColor("#666666")
+      .text(variant, 50, itemY + 15, { width: 250 });
+  }
+
+  doc
+    .fontSize(10)
+    .fillColor("#333333")
+    .text(item.quantity.toString(), 320, itemY, { width: 50, align: "right" })
+    .text(formatCurrency(item.price), 380, itemY, { width: 70, align: "right" })
+    .text(formatCurrency(item.price * item.quantity), 460, itemY, { width: 85, align: "right" });
+
+  const summaryTop = itemY + 60;
+  doc
+    .strokeColor("#000000")
+    .lineWidth(0.5)
+    .moveTo(350, summaryTop)
+    .lineTo(545, summaryTop)
+    .stroke();
+
+  doc
+    .fontSize(10)
+    .font("Helvetica")
+    .fillColor("#333333")
+    .text("Subtotal:", 350, summaryTop + 15)
+    .text(formatCurrency(item.oldPrice * item.quantity), 460, summaryTop + 15, {
+      width: 85,
+      align: "right",
+    });
+
+  if (discount > 0) {
+    doc
+      .text("Discount:", 350, summaryTop + 35)
+      .text(`-${formatCurrency(discount)}`, 460, summaryTop + 35, {
+        width: 85,
+        align: "right",
+      });
+  }
+
+  doc
+    .strokeColor("#000000")
+    .lineWidth(1)
+    .moveTo(350, summaryTop + 55)
+    .lineTo(545, summaryTop + 55)
+    .stroke();
+
+  doc
+    .fontSize(12)
+    .font("Helvetica-Bold")
+    .fillColor("#000000")
+    .text("Total:", 350, summaryTop + 65)
+    .text(formatCurrency(item.price * item.quantity), 460, summaryTop + 65, {
+      width: 85,
+      align: "right",
+    });
+
+  doc
+    .strokeColor("#000000")
+    .lineWidth(1)
+    .moveTo(350, summaryTop + 90)
+    .lineTo(545, summaryTop + 90)
+    .stroke();
+
+  doc
+    .fontSize(8)
+    .font("Helvetica")
+    .fillColor("#666666")
+    .text("Thank you for your business.", 50, 700, { align: "center", width: 495 });
+
+  doc.end();
 };
 export const getAdminOrdersService = async (page, perPage, query) => {
   const filter = {};
@@ -539,6 +693,48 @@ export const getSalesReportService = async (filter, startDate, endDate, year, mo
     returnSum,
     totalRevenue,
   };
+};
+
+export const getSalesReportOrdersService = async (filter, startDate, endDate, year, month) => {
+  const match = { orderStatus: { $ne: "Failed" } };
+  const now = new Date();
+  const firstDayOfWeek = new Date(now);
+  let day = (now.getDay() + 6) % 7;
+  firstDayOfWeek.setDate(now.getDate() - day);
+  const lastDayOfTheWeek = new Date(firstDayOfWeek);
+  lastDayOfTheWeek.setDate(firstDayOfWeek.getDate() + 6);
+  switch (filter) {
+    case "daily":
+      match.createdAt = {
+        $gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+        $lte: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
+      };
+      break;
+    case "weekly":
+      match.createdAt = {
+        $gte: firstDayOfWeek,
+        $lte: lastDayOfTheWeek,
+      };
+      break;
+    case "monthly":
+      match.createdAt = {
+        $gte: new Date(year, month - 1, 1),
+        $lte: new Date(year, month, 1),
+      };
+      break;
+    case "yearly":
+      match.createdAt = {
+        $gte: new Date(year, 0, 1),
+        $lte: new Date(year + 1, 0, 1),
+      };
+      break;
+    case "custom":
+      match.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+      break;
+  }
+  const result = await orderModel.aggregate([{ $match: match }]);
+
+  return result;
 };
 
 export const orderWithWalletService = async (userId, body) => {

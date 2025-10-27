@@ -149,7 +149,6 @@ export const getAllProductsService = async (query, page, perPage) => {
   if (query.related) {
     filter._id = { $ne: new mongoose.Types.ObjectId(query.related) };
   }
- 
 
   let pipeline = [
     {
@@ -191,13 +190,17 @@ export const getAllProductsService = async (query, page, perPage) => {
     { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
     { $unwind: { path: "$subCategory", preserveNullAndEmptyArrays: true } },
     { $unwind: { path: "$thirdCategory", preserveNullAndEmptyArrays: true } },
-    {
+  ];
+  if (!query.admin && query.admin !== "true") {
+    pipeline.push({
       $match: {
         "category.isBlocked": false,
         "subCategory.isBlocked": false,
         "thirdCategory.isBlocked": false,
       },
-    },
+    });
+  }
+  pipeline.push(
     {
       $addFields: {
         totalVariants: { $size: "$variants" },
@@ -231,22 +234,9 @@ export const getAllProductsService = async (query, page, perPage) => {
         },
         stock: { $sum: "$variants.stock" },
       },
-    },
-  ];
-
-
-  if (query.minPrice || query.maxPrice) {
-    let priceFilter = {};
-    if (query.minPrice) priceFilter.$gte = parseInt(query.minPrice);
-    if (query.maxPrice) {
-      if (query.maxPrice != "3000") {
-        priceFilter.$lte = parseInt(query.maxPrice);
-      }
     }
-    pipeline.push({
-      $match: { "defaultVariant.price": priceFilter },
-    });
-  }
+  );
+
   if (query.availability && query.availability === "true") {
     pipeline.push({
       $match: { stock: { $gt: 0 } },
@@ -288,7 +278,7 @@ export const getAllProductsService = async (query, page, perPage) => {
   }
   pipeline.push({ $project: { variants: 0 } });
   if (query.popular) {
-    pipeline.push({ $sort: { rating: -1 } }, {$limit:12});
+    pipeline.push({ $sort: { rating: -1 } }, { $limit: 12 });
   }
   if (perPage && page) {
     pipeline.push({
@@ -311,7 +301,11 @@ export const getAllProductsService = async (query, page, perPage) => {
         return product;
       })
     );
-
+    if (query.minPrice || query.maxPrice) {
+      products = products.filter(
+        (p) => p.defaultVariant.price >= query.minPrice && p.defaultVariant.price <= query.maxPrice
+      );
+    }
     return { totalPages, products, totalPosts };
   }
   let products = await productModel.aggregate(pipeline);
@@ -321,6 +315,12 @@ export const getAllProductsService = async (query, page, perPage) => {
       return product;
     })
   );
+  if (query.minPrice || query.maxPrice) {
+    products = products.filter(
+      (p) => p.defaultVariant.price >= query.minPrice && p.defaultVariant.price <= query.maxPrice
+    );
+  }
+
   return { products };
 };
 
@@ -647,7 +647,7 @@ export const createRazorpayOrderService = async ({ amount, items, failed = false
         throw new AppError(`${product.name} is out of stock`, STATUS_CODES.BAD_REQUEST);
       }
     }
-  } else if(items) {
+  } else if (items) {
     for (let item of items) {
       const product = await productModel
         .findById(item.product._id)
@@ -684,4 +684,3 @@ export const createRazorpayOrderService = async ({ amount, items, failed = false
   const order = await razorpay.orders.create(options);
   return order;
 };
-

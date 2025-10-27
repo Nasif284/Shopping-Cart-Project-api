@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      default:"",
+      default: "",
     },
     image: {
       type: String,
@@ -72,5 +72,3 @@ userSchema.pre("save", async function (next) {
 });
 const userModel = mongoose.model("User", userSchema);
 export default userModel;
-
-

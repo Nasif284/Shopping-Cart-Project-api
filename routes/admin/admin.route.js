@@ -21,13 +21,13 @@ adminRouter.use("/category", categoryRouter);
 adminRouter.use("/products", productsRouter);
 adminRouter.use("/users", usersRouter);
 adminRouter.use("/size", sizeRouter);
-adminRouter.use("/homeSlides", homeSlidesRouter)
-adminRouter.use("/orders", adminOrderRouter)
-adminRouter.use("/offers", offerRouter)
-adminRouter.use("/coupon",couponRouter)
+adminRouter.use("/homeSlides", homeSlidesRouter);
+adminRouter.use("/orders", adminOrderRouter);
+adminRouter.use("/offers", offerRouter);
+adminRouter.use("/coupon", couponRouter);
 
 adminRouter.post("/login", asyncHandler(adminLoginController));
-adminRouter.get("/logout",adminAuth,asyncHandler(adminLogoutController))
+adminRouter.get("/logout", adminAuth, asyncHandler(adminLogoutController));
 adminRouter.get("/auth", adminAuth, asyncHandler(authAdminController));
 adminRouter.get("/refresh", asyncHandler(refreshToken));
 

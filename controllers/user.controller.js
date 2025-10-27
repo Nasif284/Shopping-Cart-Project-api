@@ -25,7 +25,7 @@ export async function registerUser(req, res) {
   if (!name || !email || !password) {
     throw new AppError("Provide email, name, and password", STATUS_CODES.BAD_REQUEST);
   }
-  const user = await registerUserService({ name, email, password , referralCode});
+  const user = await registerUserService({ name, email, password, referralCode });
   return res.status(STATUS_CODES.OK).json({
     success: true,
     message: "User registered successfully , please verify your email",
@@ -239,7 +239,7 @@ export const emailChangeOtpController = async (req, res) => {
 export const emailChangeOtpResend = async (req, res) => {
   const userId = req.userId;
   const email = req.body.email;
-  console.log(email)
+  console.log(email);
   await emailChangeResendOtpService(email, userId);
   return res.status(200).json({
     success: true,
@@ -252,11 +252,11 @@ export const emailChangeVerifyController = async (req, res) => {
   const userId = req.userId;
   const otp = req.body.otp;
   await emailChangeVerifyService(userId, otp);
-    return res.status(200).json({
-      success: true,
-      error: false,
-      message: "Email Verified Successfully",
-    });
+  return res.status(200).json({
+    success: true,
+    error: false,
+    message: "Email Verified Successfully",
+  });
 };
 
 export const getUserChartData = async (req, res) => {

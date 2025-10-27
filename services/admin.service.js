@@ -28,9 +28,9 @@ export const refreshTokenService = async (token) => {
   }
   const userId = verifyToken?.id;
   const newAccessToken = await generateAccessToken(userId, "Admin");
-   const refreshToken = await generateRefreshToken(userId, "Admin");
+  const refreshToken = await generateRefreshToken(userId, "Admin");
 
-  return {newAccessToken,refreshToken};
+  return { newAccessToken, refreshToken };
 };
 
 export const authAdminService = async (adminId) => {

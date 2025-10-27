@@ -17,8 +17,8 @@ const homeSlidesSchema = new mongoose.Schema({
   },
   isUnlisted: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
 const homeSlidesModel = mongoose.model("HomeSlides", homeSlidesSchema);

@@ -33,7 +33,7 @@ export const refreshToken = async (req, res) => {
   if (!token) {
     throw new AppError("Please provide token", STATUS_CODES.UNAUTHORIZED);
   }
-  const {newAccessToken,refreshToken} = await refreshTokenService(token);
+  const { newAccessToken, refreshToken } = await refreshTokenService(token);
   const isProduction = process.env.NODE_ENV === "production";
   const cookieOption = {
     httpOnly: true,

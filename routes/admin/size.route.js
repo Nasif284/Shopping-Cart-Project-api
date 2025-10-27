@@ -7,7 +7,6 @@ const sizeRouter = Router();
 
 sizeRouter.post("/", adminAuth, asyncHandler(addSize));
 sizeRouter.get("/", asyncHandler(getSize));
-sizeRouter.post("/block/:id",adminAuth,asyncHandler(blockSize))
-sizeRouter.put("edit/:id",adminAuth,asyncHandler(editSize))
+sizeRouter.post("/block/:id", adminAuth, asyncHandler(blockSize));
+sizeRouter.put("edit/:id", adminAuth, asyncHandler(editSize));
 export default sizeRouter;
-    

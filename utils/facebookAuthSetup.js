@@ -1,5 +1,5 @@
 import { Strategy as FacebookStrategy } from "passport-facebook";
-import userModel from "../models/user.model.js"
+import userModel from "../models/user.model.js";
 import passport from "passport";
 
 passport.use(
@@ -8,7 +8,7 @@ passport.use(
       clientID: process.env.FACEBOOK_APP_ID,
       clientSecret: process.env.FACEBOOK_APP_SECRET,
       callbackURL: process.env.FACEBOOK_CALLBACK_URL,
-      profileFields: ["id", "emails", "name", "displayName", "photos"], 
+      profileFields: ["id", "emails", "name", "displayName", "photos"],
     },
     async (_, __, profile, done) => {
       try {

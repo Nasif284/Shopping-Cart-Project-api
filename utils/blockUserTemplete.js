@@ -94,5 +94,4 @@ const accountBlockedMailTemplate = (
   `;
 };
 
-export default accountBlockedMailTemplate
-
+export default accountBlockedMailTemplate;

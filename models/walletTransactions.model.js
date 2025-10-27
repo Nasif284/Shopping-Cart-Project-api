@@ -18,7 +18,7 @@ const walletTransactionSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      default:"",
+      default: "",
     },
     relatedOrderId: {
       type: String,
@@ -26,7 +26,7 @@ const walletTransactionSchema = new mongoose.Schema(
     },
     transactionId: {
       type: String,
-      default:""
+      default: "",
     },
     balanceAfter: {
       type: Number,

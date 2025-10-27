@@ -25,8 +25,7 @@ export const addToCartService = async (userId, body) => {
         quantity,
       });
       cartItem.push(newItem);
-     await wishlistModal.findOneAndDelete({ user: userId, product, variant });
-  
+      await wishlistModal.findOneAndDelete({ user: userId, product, variant });
     }
     return cartItem;
   } else {
@@ -103,12 +102,12 @@ export const getCartItemsService = async (userId) => {
       ],
     })
     .populate("variant");
-  const items =await Promise.all(
+  const items = await Promise.all(
     result.map(async (item) => {
       item.variant = await applyBestOffer(item.variant);
       return item;
     })
-  ); 
+  );
   return items;
 };
 

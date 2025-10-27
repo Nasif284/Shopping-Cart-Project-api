@@ -29,11 +29,11 @@ export const homeSlidesAddService = async (image, body) => {
 };
 
 export const getHomeSlidesService = async (page, perPage, user) => {
-    const totalPosts = await homeSlidesModel.countDocuments();
-    const filter = {}
-    if (user) {
-        filter.isUnlisted = false
-    }
+  const totalPosts = await homeSlidesModel.countDocuments();
+  const filter = {};
+  if (user) {
+    filter.isUnlisted = false;
+  }
   const homeSlides = await homeSlidesModel
     .find(filter)
     .sort({ createdAt: -1 })
@@ -66,6 +66,8 @@ export const editHomeSlidesService = async (id, body, image) => {
 };
 
 export const homeSlidesToggleBlockService = async (id) => {
-    const homeSlide = await homeSlidesModel.findByIdAndUpdate(id, [{ $set: { isUnlisted: { $not: "$isUnlisted" } } }])
-    return homeSlide
-}
+  const homeSlide = await homeSlidesModel.findByIdAndUpdate(id, [
+    { $set: { isUnlisted: { $not: "$isUnlisted" } } },
+  ]);
+  return homeSlide;
+};

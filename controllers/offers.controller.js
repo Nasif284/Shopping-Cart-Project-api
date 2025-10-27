@@ -40,7 +40,7 @@ export const addGlobalOfferController = async (req, res) => {
 export const getCategoryOffersController = async (req, res) => {
   const page = parseInt(req.query.page);
   const perPage = parseInt(req.query.perPage);
-  const { offers, totalPosts } = await getCategoryOffersService(page, perPage,);
+  const { offers, totalPosts } = await getCategoryOffersService(page, perPage);
   return res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
@@ -53,14 +53,14 @@ export const getCategoryOffersController = async (req, res) => {
 export const getGlobalOffersController = async (req, res) => {
   const page = parseInt(req.query.page);
   const perPage = parseInt(req.query.perPage);
-  const {offers,totalPosts} = await getGlobalOffersService(page, perPage);
+  const { offers, totalPosts } = await getGlobalOffersService(page, perPage);
   return res.status(STATUS_CODES.OK).json({
     success: true,
     error: false,
     offers,
     page,
     perPage,
-    totalPosts
+    totalPosts,
   });
 };
 
@@ -92,4 +92,4 @@ export const editGlobalOfferController = async (req, res) => {
     error: false,
     offer,
   });
-}
+};

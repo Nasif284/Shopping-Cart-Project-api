@@ -16,7 +16,7 @@ const otpSchema = new mongoose.Schema(
     },
     isVerified: {
       type: Boolean,
-      default: false
+      default: false,
     },
     createdAt: {
       type: Date,

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import upload from "../../middlewares/multer/multer.js"; 
+import upload from "../../middlewares/multer/multer.js";
 import {
   blockCategory,
   createCategory,
@@ -12,10 +12,10 @@ import adminAuth from "../../middlewares/auth/adminAuth.js";
 
 const categoryRouter = Router();
 
-categoryRouter.post("/",adminAuth, upload.single("image"), asyncHandler(createCategory));
+categoryRouter.post("/", adminAuth, upload.single("image"), asyncHandler(createCategory));
 categoryRouter.get("/", asyncHandler(getAllCategories));
 categoryRouter.get("/:level", asyncHandler(getCategoriesByLevel));
-categoryRouter.patch("/edit/:id",adminAuth, upload.single("image"), asyncHandler(updateCategory));
-categoryRouter.patch("/block/:id",adminAuth, adminAuth, asyncHandler(blockCategory));
+categoryRouter.patch("/edit/:id", adminAuth, upload.single("image"), asyncHandler(updateCategory));
+categoryRouter.patch("/block/:id", adminAuth, adminAuth, asyncHandler(blockCategory));
 
 export default categoryRouter;

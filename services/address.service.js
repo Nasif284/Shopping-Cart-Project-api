@@ -10,7 +10,7 @@ export const addAddressService = async (body, userId) => {
 };
 
 export const getAddressService = async (userId) => {
-  const addresses = await addressModel.find({ userId }).sort({createdAt:-1})
+  const addresses = await addressModel.find({ userId }).sort({ createdAt: -1 });
   return addresses;
 };
 
@@ -20,6 +20,6 @@ export const editAddressService = async (id, body) => {
 };
 
 export const deleteAddressService = async (id) => {
-    const address = await addressModel.findByIdAndDelete(id)
-    return address;
-}
+  const address = await addressModel.findByIdAndDelete(id);
+  return address;
+};

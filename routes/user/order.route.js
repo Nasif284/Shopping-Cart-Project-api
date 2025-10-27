@@ -26,7 +26,7 @@ orderRouter.post("/", userAuth, asyncHandler(placeOrder));
 orderRouter.post("/wallet", userAuth, asyncHandler(orderWithWallet));
 orderRouter.get("/", userAuth, asyncHandler(getOrders));
 orderRouter.post("/failed/retry/razorpay", userAuth, asyncHandler(retryFiledRazorpayVerify));
-orderRouter.post("/failed/retry/wallet", userAuth, asyncHandler(retryFailedOrderWithWallet ));
+orderRouter.post("/failed/retry/wallet", userAuth, asyncHandler(retryFailedOrderWithWallet));
 orderRouter.post("/failed/retry", userAuth, asyncHandler(retryFailedOrderWithCOD));
 orderRouter.get("/failed/:id", userAuth, asyncHandler(getFailedOrderController));
 orderRouter.post("/razorpay/create-order", userAuth, asyncHandler(createRazorpayOrder));

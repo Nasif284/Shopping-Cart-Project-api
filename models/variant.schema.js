@@ -12,7 +12,7 @@ const variantSchema = new mongoose.Schema(
     reviewsCount: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
     images: [{ type: String }],
-    isUnlisted: {type: Boolean, default: false}
+    isUnlisted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

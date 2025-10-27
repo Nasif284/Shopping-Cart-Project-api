@@ -43,11 +43,11 @@ export const editHomeSlideController = async (req, res) => {
 };
 
 export const homeSlidesToggleBlockController = async (req, res) => {
-    const id = req.params.id
-    const homeSlide = await homeSlidesToggleBlockService(id)
-    return res.status(STATUS_CODES.OK).json({
-      success: true,
-      error: false,
-      homeSlide,
-    });
-}
+  const id = req.params.id;
+  const homeSlide = await homeSlidesToggleBlockService(id);
+  return res.status(STATUS_CODES.OK).json({
+    success: true,
+    error: false,
+    homeSlide,
+  });
+};

@@ -27,7 +27,7 @@ const couponSchema = new mongoose.Schema(
     },
     scope: {
       type: String,
-      enum: ["User", "First Order","Global"],
+      enum: ["User", "First Order", "Global"],
     },
     startDate: {
       type: Date,

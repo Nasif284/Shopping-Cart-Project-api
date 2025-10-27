@@ -60,10 +60,10 @@ export const createCategoryService = async (image, { name, parent, level }) => {
 export const getCategoriesService = async (query) => {
   const filter = {};
   if (query.user == "true") {
-    filter.isBlocked = false
+    filter.isBlocked = false;
   }
   if (query.search) {
-    filter.name = { $regex: query.search, $options:"i" };
+    filter.name = { $regex: query.search, $options: "i" };
   }
   const categories = await categoryModel.find(filter);
   const categoryMap = {};
@@ -78,7 +78,7 @@ export const getCategoriesService = async (query) => {
       rootCategories.push(categoryMap[cat._id]);
     }
   });
-const rootTree = rootCategories.filter((cat)=> !cat.isBlocked)
+  const rootTree = rootCategories.filter((cat) => !cat.isBlocked);
   return { categoryMap, rootTree };
 };
 
@@ -109,7 +109,7 @@ export const updateCategoryService = async (id, image, { name, parent }) => {
       level: "third",
     });
   }
-  if (isExist.length > 0 && name != category.name ) {
+  if (isExist.length > 0 && name != category.name) {
     throw new AppError("Category already exist", STATUS_CODES.CONFLICT);
   }
   if (image) {
@@ -153,10 +153,10 @@ export const updateCategoryService = async (id, image, { name, parent }) => {
 export const getCatsByLevelService = async (level, page, perPage, search) => {
   let filter = { level: level };
   if (search) {
-    filter.name={$regex:search, $options:"i"}
+    filter.name = { $regex: search, $options: "i" };
   }
   if ((perPage, page)) {
-    const totalPosts = await categoryModel.countDocuments({ level: level});
+    const totalPosts = await categoryModel.countDocuments({ level: level });
     const categories = await categoryModel
       .find(filter)
       .sort({ createdAt: -1 })
@@ -180,6 +180,3 @@ export const blockCategoryService = async (id) => {
   }
   return category;
 };
-
-
-

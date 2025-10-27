@@ -17,7 +17,7 @@ homeSlidesRouter.post(
   upload.single("image"),
   asyncHandler(homeSlidesAddController)
 );
-homeSlidesRouter.get("/", adminAuth, asyncHandler(getHomeSlidesController));
+homeSlidesRouter.get("/", asyncHandler(getHomeSlidesController));
 homeSlidesRouter.put(
   "/:id",
   adminAuth,

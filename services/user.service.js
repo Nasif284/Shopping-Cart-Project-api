@@ -382,12 +382,12 @@ export const emailChangeVerifyService = async (userId, otp) => {
 export const getUserChartDataService = async (query) => {
   const { type = "daily", startDate, endDate, year, month } = query;
   const now = new Date();
-   const firstDayOfWeek = new Date(now);
-   let start, end;
-   let day = (now.getDay() + 6) % 7;
-   firstDayOfWeek.setDate(now.getDate() - day);
-   const lastDayOfTheWeek = new Date(firstDayOfWeek);
-   lastDayOfTheWeek.setDate(firstDayOfWeek.getDate() + 6);
+  const firstDayOfWeek = new Date(now);
+  let start, end;
+  let day = (now.getDay() + 6) % 7;
+  firstDayOfWeek.setDate(now.getDate() - day);
+  const lastDayOfTheWeek = new Date(firstDayOfWeek);
+  lastDayOfTheWeek.setDate(firstDayOfWeek.getDate() + 6);
   switch (type) {
     case "daily":
       start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -459,6 +459,6 @@ export const getUserChartDataService = async (query) => {
       current.setDate(current.getDate() + 1);
     }
   }
-  console.log(filled)
+  console.log(filled);
   return filled;
 };

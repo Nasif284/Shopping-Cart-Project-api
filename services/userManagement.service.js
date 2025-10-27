@@ -22,13 +22,13 @@ export const getUsersService = async (query) => {
 
   const allUsers = users.map((user) => {
     let obj = user.toObject();
-   if (user.googleId && user.image.includes("googleusercontent")) {
-     obj.image = obj.image || null;
-   } else if (user.facebookId && !user.image) {
-     obj.image = `https://graph.facebook.com/${user.facebookId}/picture?type=large`;
-   } else {
-     obj.image = user.image ? getSignedImageUrl(user.image) : null;
-   }
+    if (user.googleId && user.image.includes("googleusercontent")) {
+      obj.image = obj.image || null;
+    } else if (user.facebookId && !user.image) {
+      obj.image = `https://graph.facebook.com/${user.facebookId}/picture?type=large`;
+    } else {
+      obj.image = user.image ? getSignedImageUrl(user.image) : null;
+    }
     return obj;
   });
   return { allUsers, totalPosts };
