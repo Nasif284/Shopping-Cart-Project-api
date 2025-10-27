@@ -2,6 +2,7 @@ node_modules
 Dockerfile
 .dockerignore
 .git
-.env
-uploads
+.gitignore
 logs
+uploads
+.env
