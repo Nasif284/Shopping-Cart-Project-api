@@ -348,7 +348,6 @@ export const unlistProductService = async (id) => {
     [{ $set: { isUnlisted: { $not: "$isUnlisted" } } }],
     { new: true }
   );
-  
   return product;
 };
 
