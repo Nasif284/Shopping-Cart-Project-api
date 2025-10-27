@@ -320,7 +320,6 @@ export const getAllProductsService = async (query, page, perPage) => {
       (p) => p.defaultVariant.price >= query.minPrice && p.defaultVariant.price <= query.maxPrice
     );
   }
-
   return { products };
 };
 
