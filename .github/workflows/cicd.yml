@@ -22,10 +22,10 @@ jobs:
         steps:
             - name: Create .env file on server
               run: echo "${{ secrets.APP_ENV }}" > /home/ubuntu/.env
-            - name: Pull the latest image form docker hub
-              run: docker pull nasif284/gracia-shopping-cart:latest
             - name: delete old container
               run: docker rm -f shopping-cart-app-container
+            - name: Pull the latest image form docker hub
+              run: docker pull nasif284/gracia-shopping-cart:latest
             - name: run docker container 
               run: docker run -d -p 8000:8000 --name shopping-cart-app-container --env-file /home/ubuntu/.env nasif284/gracia-shopping-cart:latest
 
