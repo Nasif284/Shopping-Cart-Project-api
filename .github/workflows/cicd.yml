@@ -24,6 +24,8 @@ jobs:
               run: echo "${{ secrets.APP_ENV }}" > /home/ubuntu/.env
             - name: delete old container
               run: docker rm -f shopping-cart-app-container
+            - name: free up docker storage
+              run: docker system prune -a -f
             - name: Pull the latest image form docker hub
               run: docker pull nasif284/gracia-shopping-cart:latest
             - name: run docker container 
