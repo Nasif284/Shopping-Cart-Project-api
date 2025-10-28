@@ -386,6 +386,7 @@ export const getUserChartDataService = async (query) => {
   let start, end;
   let day = (now.getDay() + 6) % 7;
   firstDayOfWeek.setDate(now.getDate() - day);
+  
   const lastDayOfTheWeek = new Date(firstDayOfWeek);
   lastDayOfTheWeek.setDate(firstDayOfWeek.getDate() + 6);
   switch (type) {
