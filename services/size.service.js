@@ -10,7 +10,6 @@ export const addSizeService = async (label) => {
   const size = new sizeModel({
     label,
   });
-  
   await size.save();
   return size;
 };
