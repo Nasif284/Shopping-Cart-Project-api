@@ -9,6 +9,7 @@ function normalizeGooglePhoto(photoUrl) {
     ? `${photoUrl.split("=")[0]}?sz=200`
     : photoUrl;
 }
+
 passport.use(
   new GoogleStrategy(
     {
