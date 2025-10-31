@@ -18,6 +18,7 @@ export const getCouponService = async (page, perPage) => {
   const totalPosts = await couponModel.countDocuments();
   const coupons = await couponModel
     .find()
+    .sort({createdAt:-1})
     .skip((page - 1) * perPage)
     .limit(perPage);
   return { coupons, totalPosts };
