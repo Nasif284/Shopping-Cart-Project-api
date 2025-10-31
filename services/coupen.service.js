@@ -45,10 +45,13 @@ export const toggleCouponStatusService = async (id) => {
 export const getCouponForUserService = async (purchaseValue, userId) => {
   const hasOrders = await orderModel.exists({ userId });
   const objectUserId = new mongoose.Types.ObjectId(userId);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0); 
+
   const baseFilter = {
     minPurchaseAmount: { $lte: purchaseValue },
-    startDate: { $lte: new Date() },
-    expiryDate: { $gte: new Date() },
+    startDate: { $lte: now },
+    expiryDate: { $gte: now }, 
     isActive: true,
     $expr: { $lt: ["$usedCount", "$usageLimit"] },
   };
