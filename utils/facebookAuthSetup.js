@@ -10,6 +10,7 @@ passport.use(
       callbackURL: process.env.FACEBOOK_CALLBACK_URL,
       profileFields: ["id", "emails", "name", "displayName", "photos"],
     },
+    
     async (_, __, profile, done) => {
       try {
         const email = profile.emails?.[0]?.value;
