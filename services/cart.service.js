@@ -61,7 +61,6 @@ export const addToCartService = async (userId, body) => {
     ) {
       throw new AppError("This product can not add to cart");
     }
-
     const cartItem = await cartModel.create({
       userId,
       product,
