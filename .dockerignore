@@ -3,6 +3,4 @@ Dockerfile
 .dockerignore
 .git
 .gitignore
-logs
-uploads
 .env

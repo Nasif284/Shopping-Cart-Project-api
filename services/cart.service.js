@@ -7,8 +7,8 @@ import { applyBestOffer } from "../utils/applyBestOffer.js";
 import { STATUS_CODES } from "../utils/statusCodes.js";
 
 export const addToCartService = async (userId, body) => {
+      const cart = await cartModel.find({ userId });
   if (Array.isArray(body)) {
-    const cart = await cartModel.find({ userId });
     let cartItem = [];
     for (let item of body) {
       const { product, variant, quantity } = item;
@@ -30,6 +30,15 @@ export const addToCartService = async (userId, body) => {
     return cartItem;
   } else {
     const { product, variant, quantity } = body;
+    
+     const exists = cart.find(
+       (c) =>
+         c.product.toString() === product.toString() &&
+         c.variant.toString() === variant.toString()
+    );
+    if (exists) {
+      throw new AppError("Product Already exist in the cart", STATUS_CODES.BAD_REQUEST)
+    }
     const Product = await productModel
       .findById(product)
       .populate("categoryId")
@@ -75,6 +84,12 @@ export const removeFromCartService = async (id) => {
 
 export const editItemCountService = async (id, mode) => {
   const item = await cartModel.findById(id).populate("variant");
+  if (item.quantity == 5 && mode == "plus") {
+    return new AppError("Adding more than 5 items is not allowed for per product")
+  }
+    if (item.quantity == 1 && mode == "minus") {
+      return new AppError("less than 1 item is not allowed");
+    }
   if (mode == "plus") {
     if (item.quantity + 1 > item.variant.stock) {
       throw new AppError(

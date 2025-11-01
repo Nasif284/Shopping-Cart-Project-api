@@ -465,7 +465,12 @@ export const getAdminOrdersByItemsService = async (query, page, perPage) => {
 
 export const updateOrderStatusService = async (id, status) => {
   const order = await orderModel.findOne({ "items._id": id });
+  
   const item = order.items.id(id);
+  console.log(status, item.statusHistory)
+if (item.statusHistory.some((h) => h.status === status)) {
+  throw new AppError("This order already has this status, please refresh the page");
+}
   item.status = status;
   if (item.status == "Cancelled") {
     const wallet = await walletModel.findOne({ userId: order.userId });
