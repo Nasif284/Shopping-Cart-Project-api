@@ -13,7 +13,6 @@ export const getAddressService = async (userId) => {
   return addresses;
 };
 
-
 export const editAddressService = async (id, body) => {
   const address = await addressModel.findByIdAndUpdate(id, { $set: { ...body } }, { new: true });
   return address;
