@@ -29,6 +29,12 @@ jobs:
             - name: Pull the latest image form docker hub
               run: docker pull nasif284/gracia-shopping-cart:latest
             - name: run docker container 
-              run: docker run -d -p 8000:8000 --name shopping-cart-app-container --env-file /home/ubuntu/.env nasif284/gracia-shopping-cart:latest
+              run: |
+                  docker run -d \
+                  --restart unless-stopped \
+                  -p 8000:8000 \
+                  --env-file /home/ubuntu/.env \
+                  --name shopping-cart-app-container \
+                  nasif284/gracia-shopping-cart:latest
 
       
